@@ -19,6 +19,10 @@ import { bundlerActions } from 'permissionless'
 import { EntryPoint } from 'permissionless/types'
 import { fetchAllBalances } from './useTokenBalances'
 import { PasskeyValidatorContractVersion, toPasskeyValidator, toWebAuthnKey, WebAuthnMode } from "@zerodev/passkey-validator"
+import { 
+  createNexusClient, 
+  createBicoPaymasterClient 
+} from "@biconomy/sdk"
 
 const toastStyle = {
   style: {
@@ -79,28 +83,34 @@ export async function transferUSDC({
     if (wallet.vendor === 'biconomy') {
       if (!storedWallet?.privateKey) throw new Error('Private key not found')
 
-      // Biconomy flow
+      // Create Biconomy account
       const account = privateKeyToAccount(storedWallet.privateKey as `0x${string}`)
-      const signer = createWalletClient({
-        account,
+
+      // Create Nexus client with paymaster
+      const nexusClient = await createNexusClient({
+        signer: account,
         chain: networkConfig.chain,
         transport: http(),
+        bundlerTransport: http(`https://bundler.biconomy.io/api/v3/${chainId}/IGh7f8l_Y.cb47412c-43c8-459e-815f-fd3abcaaef19`),
+        paymaster: createBicoPaymasterClient({
+          paymasterUrl: `https://paymaster.biconomy.io/api/v1/8453/IGh7f8l_Y.cb47412c-43c8-459e-815f-fd3abcaaef19`
+        }),
       })
-
-      const smartWallet = await createSmartAccountClient({
-        signer,
-        bundlerUrl: networkConfig.bundlerUrl,
-      })
-
-      const tx = {
-        to: tokenConfig.address,
-        data: transferData,
-      }
 
       onStep?.('confirming')
-      const userOpResponse = await smartWallet.sendTransaction(tx)
-      userOpHash = userOpResponse.userOpHash
-      receipt = await userOpResponse.wait()
+
+      // Send transaction
+      const hash = await nexusClient.sendTransaction({
+        calls: [{
+          to: tokenConfig.address as `0x${string}`,
+          data: transferData,
+          value: BigInt(0)
+        }]
+      })
+
+      // Wait for receipt
+      receipt = await nexusClient.waitForTransactionReceipt({ hash })
+      userOpHash = hash
 
     } else {
       // ZeroDev flow - handle both passkey and local key

@@ -23,7 +23,7 @@ const toastStyle = {
     borderRadius: '12px',
   },
   iconTheme: {
-    primary: '#22c55e', // Using a softer green
+    primary: '#22c55e',
     secondary: '#FFFFFF',
   },
 }
@@ -46,6 +46,11 @@ export async function fetchAllBalances(addresses: Address[]) {
       ...toastStyle,
       id: toastId
     })
+
+    // Emit an event that individual hooks can listen to
+    window.dispatchEvent(new CustomEvent('balancesUpdated', {
+      detail: { addresses }
+    }))
 
     return allBalances
   } catch (error) {
@@ -101,9 +106,28 @@ export function useTokenBalances(address: Address) {
     setBalances(newBalances)
   }, [address])
 
+  // Initial fetch
   useEffect(() => {
     fetchBalances()
   }, [address])
+
+  // Listen for global balance updates
+  useEffect(() => {
+    const handleBalancesUpdated = (event: CustomEvent<{ addresses: Address[] }>) => {
+      if (event.detail.addresses.includes(address)) {
+        fetchBalances()
+      }
+    }
+
+    window.addEventListener('balancesUpdated', handleBalancesUpdated as EventListener)
+    return () => window.removeEventListener('balancesUpdated', handleBalancesUpdated as EventListener)
+  }, [address, fetchBalances])
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(fetchBalances, 30000)
+    return () => clearInterval(interval)
+  }, [fetchBalances])
 
   return { balances, refetch: fetchBalances }
 } 

@@ -16,6 +16,7 @@ import { Wallet } from '../types/wallet'
 import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { bundlerActions } from 'permissionless'
 import { EntryPoint } from 'permissionless/types'
+import { fetchAllBalances } from './useTokenBalances'
 
 const toastStyle = {
   style: {
@@ -133,6 +134,9 @@ export async function transferUSDC({
     })
 
     toast.success('✨ Transfer complete!', { id: toastId })
+
+    // Trigger balance update for both addresses
+    await fetchAllBalances([from, to])
 
   } catch (error) {
     console.error('Transfer failed:', error)

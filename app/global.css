@@ -129,3 +129,16 @@ pre {
 .btn-primary {
   @apply bg-primary hover:bg-primary/90 text-white;
 }
+
+@keyframes rotate-360 {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rotate-360 {
+  animation: rotate-360 1s linear infinite;
+}

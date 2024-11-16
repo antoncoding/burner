@@ -1,14 +1,15 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { Address } from 'viem'
+import { Address, Chain } from 'viem'
 import { Avatar } from './Avatar'
 import { Wallet } from '../types/wallet'
 import { PencilIcon } from '@heroicons/react/24/outline'
 import { IoCopyOutline } from 'react-icons/io5'
-import { FiCheck } from 'react-icons/fi'
+import { FiCheck, FiExternalLink } from 'react-icons/fi'
 import { motion } from 'framer-motion'
 import { TbFingerprint, TbKey } from 'react-icons/tb'
 import { useTokenBalances } from '../hooks/useTokenBalances'
+import { base } from 'viem/chains'
 
 type Props = {
   wallet: Wallet
@@ -19,9 +20,18 @@ export function WalletCard({ wallet, onUpdateLabel }: Props) {
   const [isEditing, setIsEditing] = useState(false)
   const [label, setLabel] = useState(wallet.label)
   const [copied, setCopied] = useState(false)
-  const { balances } = useTokenBalances(wallet.address)
+  const { balances, refetch } = useTokenBalances(wallet.address)
 
-  console.log('balances', balances)
+  const refetchRef = useRef(refetch)
+  useEffect(() => {
+    refetchRef.current = refetch
+  }, [refetch])
+
+  useEffect(() => {
+    const handleRefresh = () => refetchRef.current()
+    window.addEventListener('refreshBalances', handleRefresh)
+    return () => window.removeEventListener('refreshBalances', handleRefresh)
+  }, [])
 
   const handleLabelSubmit = () => {
     onUpdateLabel(wallet.address, label)
@@ -32,6 +42,11 @@ export function WalletCard({ wallet, onUpdateLabel }: Props) {
     await navigator.clipboard.writeText(wallet.address)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const getEtherscanUrl = () => {
+    const baseUrl = `https://basescan.org/address/${wallet.address}`
+    return baseUrl
   }
 
   const totalBalance = balances.reduce(
@@ -46,11 +61,19 @@ export function WalletCard({ wallet, onUpdateLabel }: Props) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="flex justify-between items-start mb-4">
+      <div className="flex justify-between items-start mb-6">
         <div className="flex items-center gap-4">
-          <Avatar address={wallet.address} />
+          <div className="relative">
+            <Avatar address={wallet.address} />
+            <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-box-secondary flex items-center justify-center">
+              {wallet.type === 'passkey' 
+                ? <TbFingerprint className="w-3 h-3 text-blue-500" />
+                : <TbKey className="w-3 h-3 text-purple-500" />
+              }
+            </div>
+          </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-1">
             {isEditing ? (
               <motion.div 
                 className="flex gap-2"
@@ -69,7 +92,7 @@ export function WalletCard({ wallet, onUpdateLabel }: Props) {
               </motion.div>
             ) : (
               <div className="flex items-center gap-2">
-                <span className="font-medium">{wallet.label}</span>
+                <span className="font-medium text-lg">{wallet.label}</span>
                 <button 
                   onClick={() => setIsEditing(true)}
                   className="p-1 hover:bg-box-primary rounded-full transition-colors"
@@ -78,25 +101,22 @@ export function WalletCard({ wallet, onUpdateLabel }: Props) {
                 </button>
               </div>
             )}
+            <div className="text-sm text-gray-400 font-mono">
+              {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div 
-            className={`flex items-center gap-1.5 text-xs py-1 px-2 rounded-full
-              ${wallet.type === 'passkey' 
-                ? 'bg-blue-500/10 text-blue-500' 
-                : 'bg-purple-500/10 text-purple-500'
-              }`}
+        <div className="flex items-center gap-2">
+          <motion.button
+            onClick={() => window.open(getEtherscanUrl(), '_blank')}
+            className="p-2 hover:bg-box-primary rounded-lg transition-colors"
+            title="View on Etherscan"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            {wallet.type === 'passkey' 
-              ? <TbFingerprint className="w-3.5 h-3.5" />
-              : <TbKey className="w-3.5 h-3.5" />
-            }
-            <span className="font-medium">
-              {wallet.type === 'passkey' ? 'Passkey' : 'Local Key'}
-            </span>
-          </div>
+            <FiExternalLink className="w-5 h-5" />
+          </motion.button>
 
           <motion.button
             onClick={handleCopy}
@@ -115,25 +135,31 @@ export function WalletCard({ wallet, onUpdateLabel }: Props) {
       </div>
 
       <div className="flex items-center justify-between">
-        <span className="text-3xl font-bold text-gray-800 dark:text-gray-300">
-          ${totalBalance}
-        </span>
+        <div className="flex flex-col">
+          <span className="text-3xl font-bold text-gray-800 dark:text-gray-300">
+            ${totalBalance}
+          </span>
+          <span className="text-sm text-gray-400">Total Balance</span>
+        </div>
         
         <div className="flex items-center gap-4">
           <div className="flex gap-2">
             {balances.map((balance) => (
               <motion.div 
-                key={balance.symbol}
-                className="relative w-6 h-6"
+                key={`${balance.token.symbol}-${balance.chain.id}`}
+                className="relative w-6 h-6 group"
                 whileHover={{ scale: 1.1 }}
                 transition={{ type: "spring", stiffness: 400, damping: 10 }}
               >
                 <Image
-                  src={balance.icon}
-                  alt={balance.symbol}
+                  src={balance.token.icon}
+                  alt={balance.token.symbol}
                   fill
                   className="object-contain"
                 />
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  {balance.balance} {balance.token.symbol}
+                </div>
               </motion.div>
             ))}
           </div>

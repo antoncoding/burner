@@ -6,7 +6,7 @@ import {
 } from "@zerodev/sdk"
 import { createNexusClient } from "@biconomy/sdk"
 import { toPasskeyValidator, toWebAuthnKey, WebAuthnMode, PasskeyValidatorContractVersion } from "@zerodev/passkey-validator"
-import { KERNEL_V3_1 } from "@zerodev/sdk/constants"
+import { KERNEL_V2_4, KERNEL_V3_1 } from "@zerodev/sdk/constants"
 import { signerToEcdsaValidator } from "@zerodev/ecdsa-validator"
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { SignerType, Wallet, WalletVendor } from '../types/wallet'
@@ -15,6 +15,7 @@ import { base } from 'viem/chains'
 import { getRpcProviderForChain } from '@/utils/provider'
 import { getNetworkConfig } from '../config/networks'
 import toast from 'react-hot-toast'
+import { ENTRYPOINT_ADDRESS_V07 } from 'permissionless'
 
 type StoredWallet = {
   address: Address
@@ -70,7 +71,7 @@ export function useWallets() {
 
         const passkeyValidator = await toPasskeyValidator(publicClient, {
           webAuthnKey,
-          entryPoint: networkConfig.entryPoint,
+          entryPoint: ENTRYPOINT_ADDRESS_V07,
           kernelVersion: KERNEL_V3_1,
           validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2
         })
@@ -123,7 +124,7 @@ export function useWallets() {
           const validator = await signerToEcdsaValidator(publicClient, {
             signer,
             entryPoint: networkConfig.entryPoint,
-            kernelVersion: KERNEL_V3_1
+            kernelVersion: KERNEL_V2_4
           })
 
           const account = await createKernelAccount(publicClient, {

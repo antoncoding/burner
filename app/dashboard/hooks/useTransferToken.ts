@@ -1,4 +1,4 @@
-import { Address, parseUnits, http, encodeFunctionData, createWalletClient } from 'viem'
+import { Address, parseUnits, http, encodeFunctionData } from 'viem'
 import { base } from 'viem/chains'
 import { 
   createKernelAccount,
@@ -8,20 +8,20 @@ import {
 import { signerToEcdsaValidator } from "@zerodev/ecdsa-validator"
 import { SUPPORTED_STABLES } from '../config/tokens'
 import { getRpcProviderForChain } from '@/utils/provider'
-import { erc20Abi } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import toast from 'react-hot-toast'
 import { getNetworkConfig } from '../config/networks'
 import { Wallet } from '../types/wallet'
 import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { bundlerActions } from 'permissionless'
-import { EntryPoint } from 'permissionless/types'
 import { fetchAllBalances } from './useTokenBalances'
 import { PasskeyValidatorContractVersion, toPasskeyValidator, toWebAuthnKey, WebAuthnMode } from "@zerodev/passkey-validator"
 import { 
   createNexusClient, 
   createBicoPaymasterClient 
 } from "@biconomy/sdk"
+import { erc20Abi } from '@/hooks/ERC20Hooks'
+import { EntryPoint } from 'permissionless/types'
 
 const toastStyle = {
   style: {
@@ -98,8 +98,7 @@ export async function transferUSDC({
 
       onStep?.('confirming')
 
-      console.log('Sending transaction... 2', tokenConfig.address)
-
+      console.log('Sending transaction des... ', tokenConfig.address)
       // Send transaction
       const hash = await nexusClient.sendTransaction(
         {
@@ -116,19 +115,20 @@ export async function transferUSDC({
 
     } else {
       // ZeroDev flow - handle both passkey and local key
-      const validator = await getValidator(wallet, publicClient, networkConfig.entryPoint as EntryPoint)
+      const validator = await getValidator(wallet, publicClient, networkConfig.entryPoint)
 
       const account = await createKernelAccount(publicClient, {
         plugins: {
           sudo: validator,
         },
-        entryPoint: networkConfig.entryPoint as EntryPoint,
-        kernelVersion: KERNEL_V3_1
+        entryPoint: networkConfig.entryPoint,
+        kernelVersion: KERNEL_V3_1,
+        chainId: networkConfig.chain.id
       })
 
       const kernelClient = createKernelAccountClient({
         account,
-        entryPoint: networkConfig.entryPoint as EntryPoint,
+        entryPoint: networkConfig.entryPoint,
         chain: networkConfig.chain,
         bundlerTransport: http(networkConfig.bundlerUrl),
         middleware: {

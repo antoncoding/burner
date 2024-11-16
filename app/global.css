@@ -125,3 +125,7 @@ pre {
   position: relative;
   z-index: 0;
 }
+
+.btn-primary {
+  @apply bg-primary hover:bg-primary/90 text-white;
+}

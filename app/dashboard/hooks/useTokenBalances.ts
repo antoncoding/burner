@@ -34,12 +34,7 @@ const toastStyle = {
 async function fetch1inchBalances(address: Address, chainId: number): Promise<Record<string, string>> {
   try {
     const response = await fetch(
-      `https://api.1inch.dev/balance/v1.2/${chainId}/balances/${address}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${INCH_API_KEY}`
-        }
-      }
+      `/api/balances?address=${address}&chainId=${chainId}`
     )
     
     if (!response.ok) {

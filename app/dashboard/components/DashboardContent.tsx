@@ -16,6 +16,7 @@ import { FaRegMoon, FaSun } from 'react-icons/fa';
 import { IoRefreshOutline } from 'react-icons/io5';
 import { Toaster } from 'react-hot-toast';
 import { FiUnlock } from 'react-icons/fi'
+import { fetchAllHistory } from '../hooks/useTokenHistory'
 
 export default function DashboardContent() {
   const { wallets, isLoading, createWallet, updateLabel, burnWallet } = useWallets();
@@ -56,13 +57,11 @@ export default function DashboardContent() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     
-    // Emit both refresh events
-    window.dispatchEvent(new CustomEvent('refreshBalances', {
-      detail: { addresses: wallets.map(w => w.address) }
-    }))
-    window.dispatchEvent(new CustomEvent('refreshHistory', {
-      detail: { addresses: wallets.map(w => w.address) }
-    }))
+    // Fetch both balances and history
+    await Promise.all([
+      fetchAllHistory(wallets.map(w => w.address)),
+      fetchAllHistory(wallets.map(w => w.address))
+    ])
 
     // Wait a bit to show the animation
     await new Promise(resolve => setTimeout(resolve, 1000))

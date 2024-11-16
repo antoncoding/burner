@@ -28,6 +28,34 @@ export type HistoryItem = {
   }
 }
 
+// Global fetch function for multiple addresses
+export async function fetchAllHistory(addresses: Address[]) {
+  const allHistory = await Promise.all(
+    addresses.map(async (address) => {
+      try {
+        const response = await fetch(`/api/history?address=${address}`)
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        return { address, data }
+      } catch (error) {
+        console.error(`Failed to fetch history for ${address}:`, error)
+        return { address, data: null }
+      }
+    })
+  )
+
+  // Emit event with results
+  window.dispatchEvent(new CustomEvent('historyUpdated', {
+    detail: { results: allHistory }
+  }))
+
+  return allHistory
+}
+
 export function useTokenHistory(address: Address) {
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -66,8 +94,32 @@ export function useTokenHistory(address: Address) {
     }
   }, [address])
 
+  // Initial fetch
   useEffect(() => {
     fetchHistory()
+  }, [address])
+
+  // Listen for global history updates
+  useEffect(() => {
+    const handleHistoryUpdated = (event: CustomEvent<{ results: { address: Address, data: any }[] }>) => {
+      const result = event.detail.results.find(r => r.address === address)
+      if (result?.data?.items) {
+        const filteredItems = result.data.items.filter((item: HistoryItem) => {
+          return item.details.tokenActions?.some(action => {
+            return SUPPORTED_STABLES.some(token => 
+              token.networks.some(network => 
+                network.address.toLowerCase() === action.address.toLowerCase()
+              )
+            )
+          })
+        })
+        filteredItems.sort((a: HistoryItem, b: HistoryItem) => b.timeMs - a.timeMs)
+        setHistory(filteredItems)
+      }
+    }
+
+    window.addEventListener('historyUpdated', handleHistoryUpdated as EventListener)
+    return () => window.removeEventListener('historyUpdated', handleHistoryUpdated as EventListener)
   }, [address])
 
   return { history, isLoading, refetch: fetchHistory }

@@ -16,10 +16,6 @@ import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { bundlerActions } from 'permissionless'
 import { fetchAllBalances } from './useTokenBalances'
 import { PasskeyValidatorContractVersion, toPasskeyValidator, toWebAuthnKey, WebAuthnMode } from "@zerodev/passkey-validator"
-import { 
-  createNexusClient, 
-  createBicoPaymasterClient 
-} from "@biconomy/sdk"
 import { erc20Abi } from '@/hooks/ERC20Hooks'
 import { EntryPoint } from 'permissionless/types'
 
@@ -79,90 +75,54 @@ export async function transferUSDC({
 
     const storedWallet = JSON.parse(localStorage.getItem('storedWallets') || '[]').find((w: any) => w.address === wallet.address)
 
-    if (wallet.vendor === 'biconomy') {
-      if (!storedWallet?.privateKey) throw new Error('Private key not found')
+    // ZeroDev flow - handle both passkey and local key
+    const validator = await getValidator(wallet, publicClient, networkConfig.entryPoint)
 
-      // Create Biconomy account
-      const account = privateKeyToAccount(storedWallet.privateKey as `0x${string}`)
+    const account = await createKernelAccount(publicClient, {
+      plugins: {
+        sudo: validator,
+      },
+      entryPoint: networkConfig.entryPoint,
+      kernelVersion: KERNEL_V3_1,
+      chainId: networkConfig.chain.id
+    })
 
-      // Create Nexus client with paymaster
-      const nexusClient = await createNexusClient({
-        signer: account,
-        chain: networkConfig.chain,
-        transport: http(),
-        bundlerTransport: http(`https://bundler.biconomy.io/api/v3/${chainId}/B64sXUGSX.d91a217c-14f6-4798-af8f-b38f3e7273dd`),
-        paymaster: createBicoPaymasterClient({
-          paymasterUrl: `https://paymaster.biconomy.io/api/v2/8453/B64sXUGSX.d91a217c-14f6-4798-af8f-b38f3e7273dd`
-        }),
-      })
+    const kernelClient = createKernelAccountClient({
+      account,
+      entryPoint: networkConfig.entryPoint,
+      chain: networkConfig.chain,
+      bundlerTransport: http(networkConfig.bundlerUrl),
+      middleware: {
+        sponsorUserOperation: async ({ userOperation }) => {
+          const zerodevPaymaster = createZeroDevPaymasterClient({
+            chain: networkConfig.chain,
+            entryPoint: networkConfig.entryPoint,
+            transport: http(networkConfig.paymasterUrl),
+          })
+          return zerodevPaymaster.sponsorUserOperation({
+            userOperation,
+            entryPoint: networkConfig.entryPoint,
+          })
+        }
+      }
+    })
 
-      onStep?.('confirming')
-
-      console.log('Sending transaction des... ', tokenConfig.address)
-      // Send transaction
-      const hash = await nexusClient.sendTransaction(
-        {
+    userOpHash = await kernelClient.sendUserOperation({
+      account,
+      userOperation: {
+        callData: await account.encodeCallData({
           to: tokenConfig.address as `0x${string}`,
           data: transferData,
           value: BigInt(0),
-          chain: networkConfig.chain
-        },
-      )
+        }),
+      },
+    })
+    onStep?.('confirming')
 
-      // Wait for receipt
-      receipt = await nexusClient.waitForTransactionReceipt({ hash })
-      userOpHash = hash
-
-    } else {
-      // ZeroDev flow - handle both passkey and local key
-      const validator = await getValidator(wallet, publicClient, networkConfig.entryPoint)
-
-      const account = await createKernelAccount(publicClient, {
-        plugins: {
-          sudo: validator,
-        },
-        entryPoint: networkConfig.entryPoint,
-        kernelVersion: KERNEL_V3_1,
-        chainId: networkConfig.chain.id
-      })
-
-      const kernelClient = createKernelAccountClient({
-        account,
-        entryPoint: networkConfig.entryPoint,
-        chain: networkConfig.chain,
-        bundlerTransport: http(networkConfig.bundlerUrl),
-        middleware: {
-          sponsorUserOperation: async ({ userOperation }) => {
-            const zerodevPaymaster = createZeroDevPaymasterClient({
-              chain: networkConfig.chain,
-              entryPoint: networkConfig.entryPoint,
-              transport: http(networkConfig.paymasterUrl),
-            })
-            return zerodevPaymaster.sponsorUserOperation({
-              userOperation,
-              entryPoint: networkConfig.entryPoint,
-            })
-          }
-        }
-      })
-
-      userOpHash = await kernelClient.sendUserOperation({
-        account,
-        userOperation: {
-          callData: await account.encodeCallData({
-            to: tokenConfig.address as `0x${string}`,
-            data: transferData,
-            value: BigInt(0),
-          }),
-        },
-      })
-      onStep?.('confirming')
-
-      const bundlerClient = kernelClient.extend(bundlerActions(networkConfig.entryPoint))
-      receipt = await bundlerClient.waitForUserOperationReceipt({
-        hash: userOpHash as `0x${string}`
-      })
-    }
+    const bundlerClient = kernelClient.extend(bundlerActions(networkConfig.entryPoint))
+    receipt = await bundlerClient.waitForUserOperationReceipt({
+      hash: userOpHash as `0x${string}`
+    })
 
     if (receipt) {
       toast.success('✨ Transfer complete!', { id: toastId })

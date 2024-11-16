@@ -12,7 +12,7 @@ type Props = {
 export function CreateWalletModal({ isOpen, onClose, onSubmit }: Props) {
   const [label, setLabel] = useState('')
   const [selectedSigner, setSelectedSigner] = useState<SignerType | null>(null)
-  const [selectedVendor, setSelectedVendor] = useState<WalletVendor>('biconomy')
+  const [selectedVendor, setSelectedVendor] = useState<WalletVendor>('zerodev')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (!isOpen) return null
@@ -26,7 +26,7 @@ export function CreateWalletModal({ isOpen, onClose, onSubmit }: Props) {
       await onSubmit({
         label,
         signerType: selectedSigner,
-        vendor: selectedVendor
+        vendor: 'zerodev'
       })
       onClose()
     } catch (error) {
@@ -83,65 +83,30 @@ export function CreateWalletModal({ isOpen, onClose, onSubmit }: Props) {
                 </p>
               </div>
 
-              <div>
-                <div 
-                  className={`p-4 rounded-lg cursor-pointer transition-all ${
-                    selectedSigner === 'localEOA' 
-                      ? 'bg-primary/10 border-2 border-primary shadow-sm' 
-                      : 'border border-gray-600 hover:border-primary/50'
-                  }`}
-                  onClick={() => setSelectedSigner('localEOA')}
-                >
-                  <div className="font-medium flex items-center gap-2">
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center
-                      ${selectedSigner === 'localEOA' ? 'border-primary' : 'border-gray-600'}`}
-                    >
-                      {selectedSigner === 'localEOA' && 
-                        <div className="w-2 h-2 rounded-full bg-primary" />
-                      }
-                    </div>
-                    Local Key
+              <div 
+                className={`p-4 rounded-lg cursor-pointer transition-all ${
+                  selectedSigner === 'localEOA' 
+                    ? 'bg-primary/10 border-2 border-primary shadow-sm' 
+                    : 'border border-gray-600 hover:border-primary/50'
+                }`}
+                onClick={() => {
+                  setSelectedSigner('localEOA')
+                  setSelectedVendor('zerodev')
+                }}
+              >
+                <div className="font-medium flex items-center gap-2">
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center
+                    ${selectedSigner === 'localEOA' ? 'border-primary' : 'border-gray-600'}`}
+                  >
+                    {selectedSigner === 'localEOA' && 
+                      <div className="w-2 h-2 rounded-full bg-primary" />
+                    }
                   </div>
-                  <p className="text-sm text-gray-400 mt-1 ml-6">
-                    Generate a local key stored in your browser. Encrypted and easy to backup.
-                  </p>
+                  Local Key
                 </div>
-
-                {selectedSigner === 'localEOA' && (
-                  <div className="mt-4 space-y-2">
-                    <label className="block text-sm text-gray-400">Select Implementation</label>
-                    <div className="grid grid-cols-2 gap-4">
-                      {Object.values(WALLET_IMPLEMENTATIONS).map((impl) => (
-                        <div
-                          key={impl.vendor}
-                          className={`p-4 rounded-lg cursor-pointer transition-all border-2 ${
-                            selectedVendor === impl.vendor
-                              ? 'border-primary bg-primary/5'
-                              : 'border-gray-600 hover:border-primary/50'
-                          }`}
-                          onClick={() => setSelectedVendor(impl.vendor)}
-                        >
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="relative w-8 h-8">
-                              <Image
-                                src={impl.icon}
-                                alt={impl.vendor}
-                                fill
-                                className="object-contain"
-                              />
-                            </div>
-                            <span className="font-medium capitalize">
-                              {impl.vendor}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-400 mb-2">
-                            {impl.description}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <p className="text-sm text-gray-400 mt-1 ml-6">
+                  Generate a local key stored in your browser. Encrypted and easy to backup.
+                </p>
               </div>
             </div>
           </div>

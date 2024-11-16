@@ -101,49 +101,34 @@ export function useWallets() {
           vendor: 'zerodev'
         }
       } else {
-        // Local EOA flow - now with vendor selection
         const privateKey = generatePrivateKey()
         const signer = privateKeyToAccount(privateKey as Hex)
 
         let address: Address
 
-        if (data.vendor === 'biconomy') {
-          // Biconomy flow
-          const nexusClient = await createNexusClient({
-            signer,
-            chain: networkConfig.chain,
-            transport: http(),
-            bundlerTransport: http(`https://bundler.biconomy.io/api/v3/${networkConfig.chain.id}/B64sXUGSX.d91a217c-14f6-4798-af8f-b38f3e7273dd`),
-          })
+        // ZeroDev flow
+        const validator = await signerToEcdsaValidator(publicClient, {
+          signer,
+          entryPoint: networkConfig.entryPoint,
+          kernelVersion: KERNEL_V2_4
+        })
 
-          address = await nexusClient.account.address
+        const account = await createKernelAccount(publicClient, {
+          plugins: {
+            sudo: validator,
+          },
+          entryPoint: networkConfig.entryPoint,
+          kernelVersion: KERNEL_V3_1
+        })
 
-          console.log('Biconomy address:', address)
-        } else {
-          // ZeroDev flow
-          const validator = await signerToEcdsaValidator(publicClient, {
-            signer,
-            entryPoint: networkConfig.entryPoint,
-            kernelVersion: KERNEL_V2_4
-          })
-
-          const account = await createKernelAccount(publicClient, {
-            plugins: {
-              sudo: validator,
-            },
-            entryPoint: networkConfig.entryPoint,
-            kernelVersion: KERNEL_V3_1
-          })
-
-          address = account.address
-        }
+        address = account.address
 
         storedData = {
           address,
           label: data.label,
           username: 'Local Key',
           type: 'localEOA',
-          vendor: data.vendor,
+          vendor: 'zerodev',
           privateKey
         }
       }

@@ -3,6 +3,7 @@ import { base } from 'viem/chains'
 import { 
   createKernelAccount,
   createKernelAccountClient,
+  createZeroDevPaymasterClient,
 } from "@zerodev/sdk"
 import { signerToEcdsaValidator } from "@zerodev/ecdsa-validator"
 import { SUPPORTED_STABLES } from '../config/tokens'
@@ -86,6 +87,20 @@ export async function transferUSDC({
       entryPoint: networkConfig.entryPoint as EntryPoint,
       chain: networkConfig.chain,
       bundlerTransport: http(networkConfig.bundlerUrl),
+      middleware: {
+        sponsorUserOperation: async ({ userOperation }) => {
+          const zerodevPaymaster = createZeroDevPaymasterClient({
+            chain: networkConfig.chain,
+            entryPoint: networkConfig.entryPoint,
+            // Get this RPC from ZeroDev dashboard
+            transport: http(networkConfig.paymasterUrl),
+          })
+          return zerodevPaymaster.sponsorUserOperation({
+            userOperation,
+            entryPoint: networkConfig.entryPoint,
+          })
+        }
+      }
     })
 
     // Encode transfer data

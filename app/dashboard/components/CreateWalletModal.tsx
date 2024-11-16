@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { SignerType, CreateWalletFormData } from '../types/wallet'
+import { SignerType, CreateWalletFormData, WalletVendor } from '../types/wallet'
+import { IoCopyOutline } from 'react-icons/io5'
 
 type Props = {
   isOpen: boolean
@@ -10,6 +11,7 @@ type Props = {
 export function CreateWalletModal({ isOpen, onClose, onSubmit }: Props) {
   const [label, setLabel] = useState('')
   const [selectedSigner, setSelectedSigner] = useState<SignerType | null>(null)
+  const [selectedVendor, setSelectedVendor] = useState<WalletVendor>('biconomy')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (!isOpen) return null
@@ -22,7 +24,8 @@ export function CreateWalletModal({ isOpen, onClose, onSubmit }: Props) {
     try {
       await onSubmit({
         label,
-        signerType: selectedSigner
+        signerType: selectedSigner,
+        vendor: selectedVendor
       })
       onClose()
     } catch (error) {
@@ -59,7 +62,10 @@ export function CreateWalletModal({ isOpen, onClose, onSubmit }: Props) {
                     ? 'bg-primary/10 border-2 border-primary shadow-sm' 
                     : 'border border-gray-600 hover:border-primary/50'
                 }`}
-                onClick={() => setSelectedSigner('passkey')}
+                onClick={() => {
+                  setSelectedSigner('passkey')
+                  setSelectedVendor('zerodev')
+                }}
               >
                 <div className="font-medium flex items-center gap-2">
                   <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center
@@ -76,27 +82,60 @@ export function CreateWalletModal({ isOpen, onClose, onSubmit }: Props) {
                 </p>
               </div>
 
-              <div 
-                className={`p-4 rounded-lg cursor-pointer transition-all ${
-                  selectedSigner === 'localEOA' 
-                    ? 'bg-primary/10 border-2 border-primary shadow-sm' 
-                    : 'border border-gray-600 hover:border-primary/50'
-                }`}
-                onClick={() => setSelectedSigner('localEOA')}
-              >
-                <div className="font-medium flex items-center gap-2">
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center
-                    ${selectedSigner === 'localEOA' ? 'border-primary' : 'border-gray-600'}`}
-                  >
-                    {selectedSigner === 'localEOA' && 
-                      <div className="w-2 h-2 rounded-full bg-primary" />
-                    }
+              <div>
+                <div 
+                  className={`p-4 rounded-lg cursor-pointer transition-all ${
+                    selectedSigner === 'localEOA' 
+                      ? 'bg-primary/10 border-2 border-primary shadow-sm' 
+                      : 'border border-gray-600 hover:border-primary/50'
+                  }`}
+                  onClick={() => setSelectedSigner('localEOA')}
+                >
+                  <div className="font-medium flex items-center gap-2">
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center
+                      ${selectedSigner === 'localEOA' ? 'border-primary' : 'border-gray-600'}`}
+                    >
+                      {selectedSigner === 'localEOA' && 
+                        <div className="w-2 h-2 rounded-full bg-primary" />
+                      }
+                    </div>
+                    Local Key
+                    <IoCopyOutline className="w-4 h-4 text-gray-400" />
                   </div>
-                  Local Key
+                  <p className="text-sm text-gray-400 mt-1 ml-6">
+                    Generate a local key stored in your browser. Encrypted and easy to backup.
+                  </p>
                 </div>
-                <p className="text-sm text-gray-400 mt-1 ml-6">
-                  Generate a local key stored in your browser. Encrypted and easy to backup.
-                </p>
+
+                {selectedSigner === 'localEOA' && (
+                  <div className="mt-2 ml-6 space-y-2">
+                    <label className="block text-sm text-gray-400">Select Vendor</label>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        className={`px-3 py-1 rounded-full text-sm ${
+                          selectedVendor === 'biconomy'
+                            ? 'bg-primary text-white'
+                            : 'bg-box-primary hover:bg-box-hovered'
+                        }`}
+                        onClick={() => setSelectedVendor('biconomy')}
+                      >
+                        Biconomy
+                      </button>
+                      <button
+                        type="button"
+                        className={`px-3 py-1 rounded-full text-sm ${
+                          selectedVendor === 'zerodev'
+                            ? 'bg-primary text-white'
+                            : 'bg-box-primary hover:bg-box-hovered'
+                        }`}
+                        onClick={() => setSelectedVendor('zerodev')}
+                      >
+                        ZeroDev
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

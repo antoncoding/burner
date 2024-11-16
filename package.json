@@ -21,6 +21,7 @@
     "@1inch/cross-chain-sdk": "^0.1.10",
     "@alibuda/zerodev-wallet": "0.2.0",
     "@arx-research/libhalo": "^1.2.30",
+    "@biconomy/account": "^4.5.7",
     "@coinbase/onchainkit": "0.16.10",
     "@coinbase/wallet-sdk": "4.0.2",
     "@farcaster/hub-nodejs": "^0.11.9",

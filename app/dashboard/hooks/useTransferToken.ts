@@ -62,22 +62,27 @@ async function getValidator(wallet: Wallet, publicClient: any, entryPoint: Entry
   }
 }
 
+type TransferStep = 'input' | 'preparing' | 'confirming'
+
 export async function transferUSDC({
   from,
   to,
   amount,
   wallet,
-  chainId = base.id
+  chainId = base.id,
+  onStep,
 }: {
   from: Address
   to: Address
   amount: string
   wallet: Wallet
   chainId?: number
+  onStep?: (step: TransferStep) => void
 }) {
   const toastId = toast.loading('🔄 Preparing transfer...', toastStyle)
 
   try {
+    onStep?.('preparing')
     // Get network config
     const networkConfig = getNetworkConfig(chainId)
     const publicClient = getRpcProviderForChain(networkConfig.chain)
@@ -130,9 +135,7 @@ export async function transferUSDC({
       args: [to, parseUnits(amount, usdcToken.decimals)]
     })
 
-    toast.loading('🔐 Sending transaction...', { id: toastId })
-
-    // Send transaction
+    onStep?.('confirming')
     const userOpHash = await kernelClient.sendUserOperation({
       account,
       userOperation: {
@@ -144,9 +147,7 @@ export async function transferUSDC({
       },
     })
 
-    toast.loading('⏳ Waiting for confirmation...', { id: toastId })
-
-    // Create bundler client and wait for receipt
+    // Wait for transaction
     const bundlerClient = kernelClient.extend(bundlerActions(networkConfig.entryPoint))
     await bundlerClient.waitForUserOperationReceipt({
       hash: userOpHash

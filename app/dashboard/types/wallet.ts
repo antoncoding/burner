@@ -17,7 +17,9 @@ export type TokenBalance = {
   chain: Chain
 }
 
-export type SignerType = 'passkey' | 'localEOA'
+export type SignerType = 'passkey' | 'localEOA' | 'biconomyEOA'
+
+export type WalletVendor = 'zerodev' | 'biconomy'
 
 export type Wallet = {
   address: Address
@@ -29,6 +31,7 @@ export type Wallet = {
 export type CreateWalletFormData = {
   label: string
   signerType: SignerType
+  vendor?: WalletVendor
 }
 
 export type TokenTransfer = {

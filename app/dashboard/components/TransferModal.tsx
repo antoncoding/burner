@@ -162,56 +162,75 @@ export function TransferModal({ isOpen, onClose, wallet, balances }: Props) {
                     <span>Cross-chain transfer</span>
                   </label>
 
-                  {isCrossChain && (
-                    <div className="mt-4 space-y-4">
-                      <div>
-                        <label className="block mb-2">Source Chain</label>
-                        <div className="flex gap-2">
-                          {SUPPORTED_CHAINS.map((chain) => (
-                            <button
-                              key={chain.id}
-                              type="button"
-                              onClick={() => setSourceChain(chain)}
-                              className={`p-2 rounded-lg border ${
-                                sourceChain.id === chain.id
-                                  ? 'border-primary bg-primary/10'
-                                  : 'border-gray-600 hover:border-primary/50'
-                              }`}
-                            >
-                              {chain.name}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                  <AnimatePresence mode="sync">
+                    {isCrossChain && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="mt-4 space-y-4">
+                          <div>
+                            <label className="block mb-2">Source Chain</label>
+                            <div className="flex gap-2">
+                              {SUPPORTED_CHAINS.map((chain) => (
+                                <motion.button
+                                  key={chain.id}
+                                  type="button"
+                                  onClick={() => setSourceChain(chain)}
+                                  className={`p-2 rounded-lg border ${
+                                    sourceChain.id === chain.id
+                                      ? 'border-primary bg-primary/10'
+                                      : 'border-gray-600 hover:border-primary/50'
+                                  }`}
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                >
+                                  {chain.name}
+                                </motion.button>
+                              ))}
+                            </div>
+                          </div>
 
-                      <div>
-                        <label className="block mb-2">Destination Chain</label>
-                        <div className="flex gap-2">
-                          {SUPPORTED_CHAINS.filter(chain => chain.id !== sourceChain.id).map((chain) => (
-                            <button
-                              key={chain.id}
-                              type="button"
-                              onClick={() => setDestinationChain(chain)}
-                              className={`p-2 rounded-lg border ${
-                                destinationChain.id === chain.id
-                                  ? 'border-primary bg-primary/10'
-                                  : 'border-gray-600 hover:border-primary/50'
-                              }`}
-                            >
-                              {chain.name}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                          <div>
+                            <label className="block mb-2">Destination Chain</label>
+                            <div className="flex gap-2">
+                              {SUPPORTED_CHAINS.filter(chain => chain.id !== sourceChain.id).map((chain) => (
+                                <motion.button
+                                  key={chain.id}
+                                  type="button"
+                                  onClick={() => setDestinationChain(chain)}
+                                  className={`p-2 rounded-lg border ${
+                                    destinationChain.id === chain.id
+                                      ? 'border-primary bg-primary/10'
+                                      : 'border-gray-600 hover:border-primary/50'
+                                  }`}
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                >
+                                  {chain.name}
+                                </motion.button>
+                              ))}
+                            </div>
+                          </div>
 
-                      <div className="bg-box-primary/50 p-4 rounded-lg border border-gray-600/50">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-400">Bridge Fee</span>
-                          <span>0.1 USDC</span>
+                          <motion.div 
+                            className="bg-box-primary/50 p-4 rounded-lg border border-gray-600/50"
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-400">Bridge Fee</span>
+                              <span>0.1 USDC</span>
+                            </div>
+                          </motion.div>
                         </div>
-                      </div>
-                    </div>
-                  )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 <div className="flex justify-end gap-3">

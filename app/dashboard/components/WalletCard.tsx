@@ -18,6 +18,7 @@ import { formatUnits } from 'viem'
 import { SUPPORTED_STABLES } from '../config/tokens'
 import { useNotifications } from '../../hooks/useNotifications'
 import { toast } from 'react-hot-toast'
+import { RiFireLine } from 'react-icons/ri'
 
 type Props = {
   wallet: Wallet
@@ -226,7 +227,7 @@ export function WalletCard({ wallet, onUpdateLabel, onBurnWallet, canShowBurnBut
                 onClick={handleBurnClick}
                 title={canBurnWallet ? 'Burn wallet' : 'Cannot burn wallet with balance'}
               >
-                <FiTrash2 className="w-5 h-5" />
+                <RiFireLine className="w-5 h-5" />
               </motion.button>
             )}
           </div>

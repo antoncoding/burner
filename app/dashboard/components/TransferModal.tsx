@@ -33,6 +33,7 @@ export function TransferModal({ isOpen, onClose, wallet, balance }: Props) {
     setCurrentStep('preparing')
 
     try {
+      console.log('Sending transaction... 3')
       await transferUSDC({
         from: wallet.address,
         to: toAddress as Address,

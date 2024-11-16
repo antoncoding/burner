@@ -101,7 +101,6 @@ export function CreateWalletModal({ isOpen, onClose, onSubmit }: Props) {
                       }
                     </div>
                     Local Key
-                    <IoCopyOutline className="w-4 h-4 text-gray-400" />
                   </div>
                   <p className="text-sm text-gray-400 mt-1 ml-6">
                     Generate a local key stored in your browser. Encrypted and easy to backup.

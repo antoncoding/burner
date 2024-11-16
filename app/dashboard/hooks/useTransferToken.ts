@@ -5,7 +5,6 @@ import {
   createKernelAccountClient,
   createZeroDevPaymasterClient,
 } from "@zerodev/sdk"
-import { createSmartAccountClient } from "@biconomy/account"
 import { signerToEcdsaValidator } from "@zerodev/ecdsa-validator"
 import { SUPPORTED_STABLES } from '../config/tokens'
 import { getRpcProviderForChain } from '@/utils/provider'
@@ -91,22 +90,25 @@ export async function transferUSDC({
         signer: account,
         chain: networkConfig.chain,
         transport: http(),
-        bundlerTransport: http(`https://bundler.biconomy.io/api/v3/${chainId}/IGh7f8l_Y.cb47412c-43c8-459e-815f-fd3abcaaef19`),
+        bundlerTransport: http(`https://bundler.biconomy.io/api/v3/${chainId}/B64sXUGSX.d91a217c-14f6-4798-af8f-b38f3e7273dd`),
         paymaster: createBicoPaymasterClient({
-          paymasterUrl: `https://paymaster.biconomy.io/api/v1/8453/IGh7f8l_Y.cb47412c-43c8-459e-815f-fd3abcaaef19`
+          paymasterUrl: `https://paymaster.biconomy.io/api/v2/8453/B64sXUGSX.d91a217c-14f6-4798-af8f-b38f3e7273dd`
         }),
       })
 
       onStep?.('confirming')
 
+      console.log('Sending transaction... 2', tokenConfig.address)
+
       // Send transaction
-      const hash = await nexusClient.sendTransaction({
-        calls: [{
+      const hash = await nexusClient.sendTransaction(
+        {
           to: tokenConfig.address as `0x${string}`,
           data: transferData,
-          value: BigInt(0)
-        }]
-      })
+          value: BigInt(0),
+          chain: networkConfig.chain
+        },
+      )
 
       // Wait for receipt
       receipt = await nexusClient.waitForTransactionReceipt({ hash })

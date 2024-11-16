@@ -4,6 +4,7 @@ import {
   createKernelAccount,
   createKernelAccountClient
 } from "@zerodev/sdk"
+import { createNexusClient } from "@biconomy/sdk"
 import { toPasskeyValidator, toWebAuthnKey, WebAuthnMode, PasskeyValidatorContractVersion } from "@zerodev/passkey-validator"
 import { KERNEL_V3_1 } from "@zerodev/sdk/constants"
 import { signerToEcdsaValidator } from "@zerodev/ecdsa-validator"
@@ -99,25 +100,45 @@ export function useWallets() {
           vendor: 'zerodev'
         }
       } else {
-        // Local EOA flow
+        // Local EOA flow - now with vendor selection
         const privateKey = generatePrivateKey()
         const signer = privateKeyToAccount(privateKey as Hex)
-        const validator = await signerToEcdsaValidator(publicClient, {
-          signer,
-          entryPoint: networkConfig.entryPoint,
-          kernelVersion: KERNEL_V3_1
-        })
 
-        const account = await createKernelAccount(publicClient, {
-          plugins: {
-            sudo: validator,
-          },
-          entryPoint: networkConfig.entryPoint,
-          kernelVersion: KERNEL_V3_1
-        })
+        let address: Address
+
+        if (data.vendor === 'biconomy') {
+          // Biconomy flow
+          const nexusClient = await createNexusClient({
+            signer,
+            chain: networkConfig.chain,
+            transport: http(),
+            bundlerTransport: http(`https://bundler.biconomy.io/api/v3/${networkConfig.chain.id}/B64sXUGSX.d91a217c-14f6-4798-af8f-b38f3e7273dd`),
+          })
+
+          address = await nexusClient.account.address
+
+          console.log('Biconomy address:', address)
+        } else {
+          // ZeroDev flow
+          const validator = await signerToEcdsaValidator(publicClient, {
+            signer,
+            entryPoint: networkConfig.entryPoint,
+            kernelVersion: KERNEL_V3_1
+          })
+
+          const account = await createKernelAccount(publicClient, {
+            plugins: {
+              sudo: validator,
+            },
+            entryPoint: networkConfig.entryPoint,
+            kernelVersion: KERNEL_V3_1
+          })
+
+          address = account.address
+        }
 
         storedData = {
-          address: account.address as Address,
+          address,
           label: data.label,
           username: 'Local Key',
           type: 'localEOA',

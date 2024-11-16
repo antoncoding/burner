@@ -17,7 +17,6 @@ type StoredWallet = {
   label: string
   username: string
   type: SignerType
-  // For ECDSA wallets only
   privateKey?: string
 }
 
@@ -43,8 +42,7 @@ export function useWallets() {
         address: wallet.address,
         label: wallet.label,
         username: wallet.username,
-        type: wallet.type,
-        balances: []
+        type: wallet.type
       }))
       setWallets(loadedWallets)
     } catch (error) {
@@ -109,8 +107,7 @@ export function useWallets() {
           address: storedData.address,
           label: storedData.label,
           username: storedData.username,
-          type: storedData.type,
-          balances: []
+          type: storedData.type
         }])
 
         return storedData.address

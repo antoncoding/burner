@@ -8,6 +8,7 @@ import { IoCopyOutline } from 'react-icons/io5'
 import { FiCheck } from 'react-icons/fi'
 import { motion } from 'framer-motion'
 import { TbFingerprint, TbKey } from 'react-icons/tb'
+import { useTokenBalances } from '../hooks/useTokenBalances'
 
 type Props = {
   wallet: Wallet
@@ -18,6 +19,9 @@ export function WalletCard({ wallet, onUpdateLabel }: Props) {
   const [isEditing, setIsEditing] = useState(false)
   const [label, setLabel] = useState(wallet.label)
   const [copied, setCopied] = useState(false)
+  const { balances } = useTokenBalances(wallet.address)
+
+  console.log('balances', balances)
 
   const handleLabelSubmit = () => {
     onUpdateLabel(wallet.address, label)
@@ -30,7 +34,7 @@ export function WalletCard({ wallet, onUpdateLabel }: Props) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const totalBalance = wallet.balances.reduce(
+  const totalBalance = balances.reduce(
     (sum, balance) => sum + parseFloat(balance.balance),
     0
   ).toFixed(2)
@@ -117,7 +121,7 @@ export function WalletCard({ wallet, onUpdateLabel }: Props) {
         
         <div className="flex items-center gap-4">
           <div className="flex gap-2">
-            {wallet.balances.map((balance) => (
+            {balances.map((balance) => (
               <motion.div 
                 key={balance.symbol}
                 className="relative w-6 h-6"

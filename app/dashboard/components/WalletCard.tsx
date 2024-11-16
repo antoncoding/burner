@@ -93,6 +93,20 @@ export function WalletCard({ wallet, onUpdateLabel, onBurnWallet, canShowBurnBut
     b.token.symbol === 'USDC' && b.chain.id === base.id
   )?.balance || '0'
 
+  const storedWallet = JSON.parse(localStorage.getItem('storedWallets') || '[]')
+    .find((w: any) => w.address === wallet.address)
+
+  const displayName = storedWallet?.ens || `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`
+
+  const handleBurnClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setIsExpanded(false)
+    
+    setTimeout(() => {
+      setIsBurnModalOpen(true)
+    }, 150)
+  }
+
   return (
     <motion.div 
       className="bg-box-secondary w-full rounded-lg overflow-hidden"
@@ -154,8 +168,14 @@ export function WalletCard({ wallet, onUpdateLabel, onBurnWallet, canShowBurnBut
                   )}
                 </div>
               )}
-              <div className="text-sm text-gray-400 font-mono">
-                {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
+              <div className="text-sm text-gray-400 font-mono cursor-pointer hover:text-primary transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  navigator.clipboard.writeText(storedWallet?.ens || wallet.address)
+                  toast.success('Address copied!')
+                }}
+              >
+                {displayName}
               </div>
             </div>
           </div>
@@ -203,7 +223,7 @@ export function WalletCard({ wallet, onUpdateLabel, onBurnWallet, canShowBurnBut
                 disabled={!canBurnWallet}
                 whileHover={canBurnWallet ? { scale: 1.05 } : undefined}
                 whileTap={canBurnWallet ? { scale: 0.95 } : undefined}
-                onClick={() => canBurnWallet && setIsBurnModalOpen(true)}
+                onClick={handleBurnClick}
                 title={canBurnWallet ? 'Burn wallet' : 'Cannot burn wallet with balance'}
               >
                 <FiTrash2 className="w-5 h-5" />
@@ -359,15 +379,19 @@ export function WalletCard({ wallet, onUpdateLabel, onBurnWallet, canShowBurnBut
         balance={usdcBalance}
       />
 
-      <BurnWalletModal
-        isOpen={isBurnModalOpen}
-        onClose={() => setIsBurnModalOpen(false)}
-        onConfirm={async () => {
-          await onBurnWallet(wallet.address)
-          setIsBurnModalOpen(false)
-        }}
-        walletLabel={wallet.label}
-      />
+      <AnimatePresence>
+        {isBurnModalOpen && (
+          <BurnWalletModal
+            isOpen={isBurnModalOpen}
+            onClose={() => setIsBurnModalOpen(false)}
+            onConfirm={async () => {
+              await onBurnWallet(wallet.address)
+              setIsBurnModalOpen(false)
+            }}
+            walletLabel={wallet.label}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 } 

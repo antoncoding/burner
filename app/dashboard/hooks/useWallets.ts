@@ -110,7 +110,7 @@ export function useWallets() {
         const validator = await signerToEcdsaValidator(publicClient, {
           signer,
           entryPoint: networkConfig.entryPoint,
-          kernelVersion: KERNEL_V2_4
+          kernelVersion: KERNEL_V3_1,
         })
 
         const account = await createKernelAccount(publicClient, {

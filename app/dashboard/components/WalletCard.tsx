@@ -10,6 +10,7 @@ import { motion } from 'framer-motion'
 import { TbFingerprint, TbKey } from 'react-icons/tb'
 import { useTokenBalances } from '../hooks/useTokenBalances'
 import { base } from 'viem/chains'
+import { TransferModal } from './TransferModal'
 
 type Props = {
   wallet: Wallet
@@ -21,6 +22,7 @@ export function WalletCard({ wallet, onUpdateLabel }: Props) {
   const [label, setLabel] = useState(wallet.label)
   const [copied, setCopied] = useState(false)
   const { balances, refetch } = useTokenBalances(wallet.address)
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false)
 
   const refetchRef = useRef(refetch)
   useEffect(() => {
@@ -53,6 +55,11 @@ export function WalletCard({ wallet, onUpdateLabel }: Props) {
     (sum, balance) => sum + parseFloat(balance.balance),
     0
   ).toFixed(2)
+
+  // Get USDC balance
+  const usdcBalance = balances.find(b => 
+    b.token.symbol === 'USDC' && b.chain.id === base.id
+  )?.balance || '0'
 
   return (
     <motion.div 
@@ -168,11 +175,19 @@ export function WalletCard({ wallet, onUpdateLabel }: Props) {
             className="btn-primary rounded-lg py-2 px-6 text-sm transition-all"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            onClick={() => setIsTransferModalOpen(true)}
           >
             Transfer
           </motion.button>
         </div>
       </div>
+
+      <TransferModal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+        wallet={wallet}
+        balance={usdcBalance}
+      />
     </motion.div>
   )
 } 

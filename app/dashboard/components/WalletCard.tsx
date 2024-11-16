@@ -16,6 +16,8 @@ import { useTokenHistory } from '../hooks/useTokenHistory'
 import { formatDistanceToNow } from 'date-fns'
 import { formatUnits } from 'viem'
 import { SUPPORTED_STABLES } from '../config/tokens'
+import { useNotifications } from '../../hooks/useNotifications'
+import { toast } from 'react-hot-toast'
 
 type Props = {
   wallet: Wallet
@@ -33,6 +35,7 @@ export function WalletCard({ wallet, onUpdateLabel, onBurnWallet, canShowBurnBut
   const [isBurnModalOpen, setIsBurnModalOpen] = useState(false)
   const { history, isLoading: isLoadingHistory, refetch: refetchHistory } = useTokenHistory(wallet.address)
   const [isExpanded, setIsExpanded] = useState(false)
+  const { requestNotificationPermission } = useNotifications(wallet.address)
 
   const refetchRef = useRef(refetchBalances)
   useEffect(() => {

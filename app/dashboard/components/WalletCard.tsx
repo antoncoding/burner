@@ -69,7 +69,8 @@ export function WalletCard({ wallet, onUpdateLabel, onBurnWallet, canShowBurnBut
     setIsEditing(false)
   }
 
-  const handleCopy = async () => {
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation()
     await navigator.clipboard.writeText(wallet.address)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -166,7 +167,10 @@ export function WalletCard({ wallet, onUpdateLabel, onBurnWallet, canShowBurnBut
               </span>
             )}
             <motion.button
-              onClick={() => window.open(getEtherscanUrl(), '_blank')}
+              onClick={(e) => {
+                e.stopPropagation()
+                window.open(getEtherscanUrl(), '_blank')
+              }}
               className="p-2 hover:bg-box-primary rounded-lg transition-colors"
               title="View on Etherscan"
               whileHover={{ scale: 1.05 }}

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Address } from 'viem'
-import { CheckCircleIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline'
 import { motion, AnimatePresence } from 'framer-motion'
+import { IoCopyOutline } from 'react-icons/io5'
+import { FiCheck } from 'react-icons/fi'
 
 type Props = {
   isOpen: boolean
@@ -29,45 +30,46 @@ export function CreationSuccessModal({ isOpen, onClose, address, label }: Props)
           exit={{ opacity: 0 }}
         >
           <motion.div 
-            className="bg-box-secondary rounded-lg p-8 max-w-md w-full"
-            initial={{ scale: 0.9, opacity: 0 }}
+            className="bg-box-secondary rounded-lg p-6 max-w-md w-full"
+            initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ type: "spring", duration: 0.5 }}
+            exit={{ scale: 0.95, opacity: 0 }}
           >
-            <div className="flex flex-col items-center text-center">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: "spring" }}
-              >
-                <CheckCircleIcon className="w-16 h-16 text-green-500 mb-4" />
-              </motion.div>
-              
-              <h2 className="text-2xl font-bold mb-2">Burner Ready! 🔥</h2>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+
+              <h2 className="text-2xl font-bold mb-2">Burner Created!</h2>
               <p className="text-gray-400 mb-6">
-                Your burner wallet "{label}" has been created and is ready for action
+                Your new burner wallet "{label}" is ready to use
               </p>
 
-              <div className="w-full p-3 bg-box-primary rounded-lg flex items-center justify-between gap-2 mb-6">
-                <span className="text-sm truncate">{address}</span>
-                <button
-                  onClick={handleCopy}
-                  className="p-2 hover:bg-box-secondary rounded-lg transition-colors"
-                >
-                  {copied ? (
-                    <CheckCircleIcon className="w-5 h-5 text-green-500" />
-                  ) : (
-                    <ClipboardDocumentIcon className="w-5 h-5" />
-                  )}
-                </button>
+              <div className="bg-box-primary rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-between gap-4">
+                  <code className="text-sm">{address.slice(0, 8)}...{address.slice(-8)}</code>
+                  <motion.button
+                    onClick={handleCopy}
+                    className="p-2 hover:bg-box-secondary rounded-lg transition-colors"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {copied ? (
+                      <FiCheck className="w-5 h-5 text-green-500" />
+                    ) : (
+                      <IoCopyOutline className="w-5 h-5" />
+                    )}
+                  </motion.button>
+                </div>
               </div>
 
               <button
                 onClick={onClose}
-                className="btn-primary px-6 py-2 rounded-lg"
+                className="btn-primary px-8 py-3 rounded-lg w-full"
               >
-                Got it
+                Done
               </button>
             </div>
           </motion.div>

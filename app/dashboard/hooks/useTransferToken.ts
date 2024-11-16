@@ -139,7 +139,7 @@ export async function transferUSDC({
 } 
 
 // Helper function to get validator based on wallet type
-async function getValidator(wallet: Wallet, publicClient: any, entryPoint: EntryPoint) {
+export async function getValidator(wallet: Wallet, publicClient: any, entryPoint: EntryPoint) {
   if (wallet.type === 'passkey') {
     const webAuthnKey = await toWebAuthnKey({
       passkeyName: wallet.label,

@@ -1,9 +1,12 @@
 import { useState } from 'react'
-import { Address } from 'viem'
+import { Address, Chain } from 'viem'
 import { motion, AnimatePresence } from 'framer-motion'
 import { transferUSDC } from '../hooks/useTransferToken'
+import { transferCrossChain } from '../hooks/useCrossChainTransfer'
 import { Wallet } from '../types/wallet'
 import { ImSpinner8 } from 'react-icons/im'
+import { base, optimism, arbitrum } from 'viem/chains'
+import { SUPPORTED_STABLES } from '../config/tokens'
 
 type Props = {
   isOpen: boolean
@@ -14,11 +17,17 @@ type Props = {
 
 type TransferStep = 'input' | 'preparing' | 'confirming'
 
+const SUPPORTED_CHAINS = [base, optimism, arbitrum]
+const RELAYER_FEE = 0.1 // 0.1 USDC fee
+
 export function TransferModal({ isOpen, onClose, wallet, balance }: Props) {
   const [amount, setAmount] = useState('')
   const [toAddress, setToAddress] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [currentStep, setCurrentStep] = useState<TransferStep>('input')
+  const [isCrossChain, setIsCrossChain] = useState(false)
+  const [selectedChain, setSelectedChain] = useState<Chain>(base)
+  const [selectedToken, setSelectedToken] = useState(SUPPORTED_STABLES[0])
 
   const steps = [
     { id: 'preparing', label: 'Preparing Transaction' },
@@ -33,14 +42,28 @@ export function TransferModal({ isOpen, onClose, wallet, balance }: Props) {
     setCurrentStep('preparing')
 
     try {
-      console.log('Sending transaction... 3')
-      await transferUSDC({
-        from: wallet.address,
-        to: toAddress as Address,
-        amount,
-        wallet,
-        onStep: setCurrentStep
-      })
+      if (isCrossChain) {
+        // Calculate output amount (input - fee)
+        const outputAmount = (parseFloat(amount) - RELAYER_FEE).toFixed(6)
+        if (parseFloat(outputAmount) <= 0) throw new Error('Amount too small for cross-chain transfer')
+
+        await transferCrossChain({
+          from: wallet.address,
+          to: toAddress as Address,
+          amount,
+          wallet,
+          destinationChainId: selectedChain.id,
+          onStep: setCurrentStep
+        })
+      } else {
+        await transferUSDC({
+          from: wallet.address,
+          to: toAddress as Address,
+          amount,
+          wallet,
+          onStep: setCurrentStep
+        })
+      }
       onClose()
     } catch (error) {
       console.error('Transfer failed:', error)
@@ -48,6 +71,11 @@ export function TransferModal({ isOpen, onClose, wallet, balance }: Props) {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const getOutputAmount = () => {
+    if (!amount || !isCrossChain) return amount
+    return (parseFloat(amount) - RELAYER_FEE).toFixed(6)
   }
 
   return (
@@ -81,7 +109,7 @@ export function TransferModal({ isOpen, onClose, wallet, balance }: Props) {
                   />
                 </div>
 
-                <div className="mb-6">
+                <div className="mb-4">
                   <label className="block mb-2">Amount</label>
                   <div className="relative">
                     <input
@@ -103,6 +131,49 @@ export function TransferModal({ isOpen, onClose, wallet, balance }: Props) {
                   </div>
                 </div>
 
+                <div className="mb-6">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isCrossChain}
+                      onChange={(e) => setIsCrossChain(e.target.checked)}
+                      className="rounded border-gray-600"
+                    />
+                    <span>Cross-chain transfer</span>
+                  </label>
+
+                  {isCrossChain && (
+                    <div className="mt-4 space-y-4">
+                      <div>
+                        <label className="block mb-2">Destination Chain</label>
+                        <div className="flex gap-2">
+                          {SUPPORTED_CHAINS.map((chain) => (
+                            <button
+                              key={chain.id}
+                              type="button"
+                              onClick={() => setSelectedChain(chain)}
+                              className={`p-2 rounded-lg border ${
+                                selectedChain.id === chain.id
+                                  ? 'border-primary bg-primary/10'
+                                  : 'border-gray-600 hover:border-primary/50'
+                              }`}
+                            >
+                              {chain.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="bg-box-primary/50 p-4 rounded-lg border border-gray-600/50">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-400">Bridge Fee</span>
+                          <span>0.1 USDC</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex justify-end gap-3">
                   <button
                     type="button"
@@ -113,10 +184,10 @@ export function TransferModal({ isOpen, onClose, wallet, balance }: Props) {
                   </button>
                   <button
                     type="submit"
-                    disabled={!amount || !toAddress || isSubmitting}
+                    disabled={!amount || !toAddress || isSubmitting || (isCrossChain && parseFloat(getOutputAmount()) <= 0)}
                     className="btn-primary px-4 py-2 rounded disabled:opacity-50"
                   >
-                    {isSubmitting ? 'Sending...' : 'Send'}
+                    {isSubmitting ? 'Sending...' : isCrossChain ? 'Bridge' : 'Send'}
                   </button>
                 </div>
               </form>

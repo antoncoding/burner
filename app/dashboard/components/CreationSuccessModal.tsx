@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Address } from 'viem'
+import { Address, slice } from 'viem'
 import { motion, AnimatePresence } from 'framer-motion'
 import { IoCopyOutline } from 'react-icons/io5'
 import { FiCheck } from 'react-icons/fi'
@@ -119,7 +119,7 @@ export function CreationSuccessModal({ isOpen, onClose, address, label }: Props)
 
               <div className="bg-box-primary rounded-lg p-4 mb-8">
                 <div className="flex items-center justify-between gap-4">
-                  <code className="text-sm font-mono">{formatAddress(address)}</code>
+                  <code className="text-sm font-mono">{`${slice(address, 0, 6)}...${slice(address, -4)}`}</code>
                   <motion.button
                     onClick={handleCopy}
                     className="p-2 hover:bg-box-secondary rounded-lg transition-colors"

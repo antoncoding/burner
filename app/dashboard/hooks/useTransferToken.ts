@@ -3,9 +3,10 @@ import { base } from 'viem/chains'
 import { 
   createKernelAccount,
   createKernelAccountClient,
-  createZeroDevPaymasterClient,
+  createZeroDevPaymasterClient
 } from "@zerodev/sdk"
 import { signerToEcdsaValidator } from "@zerodev/ecdsa-validator"
+import { toPasskeyValidator, toWebAuthnKey, WebAuthnMode, PasskeyValidatorContractVersion } from "@zerodev/passkey-validator"
 import { SUPPORTED_STABLES } from '../config/tokens'
 import { getRpcProviderForChain } from '@/utils/provider'
 import { erc20Abi } from 'viem'
@@ -18,6 +19,8 @@ import { bundlerActions } from 'permissionless'
 import { EntryPoint } from 'permissionless/types'
 import { fetchAllBalances } from './useTokenBalances'
 
+const PASSKEY_SERVER_URL = 'https://passkeys.zerodev.app/api/v4'
+
 const toastStyle = {
   style: {
     background: 'var(--color-background-secondary)',
@@ -25,6 +28,37 @@ const toastStyle = {
     border: '1px solid var(--color-background-hovered)',
     padding: '16px',
     borderRadius: '12px',
+  }
+}
+
+// Helper function to get validator based on wallet type
+async function getValidator(wallet: Wallet, publicClient: any, entryPoint: EntryPoint) {
+  if (wallet.type === 'passkey') {
+    const webAuthnKey = await toWebAuthnKey({
+      passkeyName: wallet.label,
+      passkeyServerUrl: PASSKEY_SERVER_URL,
+      mode: WebAuthnMode.Login,
+      passkeyServerHeaders: {}
+    })
+
+    return await toPasskeyValidator(publicClient, {
+      webAuthnKey,
+      entryPoint,
+      kernelVersion: KERNEL_V3_1,
+      validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2
+    })
+  } else {
+    // Get private key from storage for local EOA
+    const stored = JSON.parse(localStorage.getItem('storedWallets') || '[]')
+    const storedWallet = stored.find((w: any) => w.address === wallet.address)
+    if (!storedWallet?.privateKey) throw new Error('Private key not found')
+
+    const signer = privateKeyToAccount(storedWallet.privateKey as `0x${string}`)
+    return await signerToEcdsaValidator(publicClient, {
+      signer,
+      entryPoint,
+      kernelVersion: KERNEL_V3_1
+    })
   }
 }
 
@@ -56,22 +90,8 @@ export async function transferUSDC({
     const tokenConfig = usdcToken.networks.find(n => n.chain.id === chainId)
     if (!tokenConfig) throw new Error('USDC not supported on this network')
 
-    // Get stored wallet data if it's a local EOA
-    if (wallet.type !== 'localEOA') {
-      throw new Error('Only local EOA wallets supported for now')
-    }
-
-    // Get private key from storage
-    const stored = JSON.parse(localStorage.getItem('storedWallets') || '[]')
-    const storedWallet = stored.find((w: any) => w.address === wallet.address)
-    if (!storedWallet?.privateKey) throw new Error('Private key not found')
-
-    const signer = privateKeyToAccount(storedWallet.privateKey as `0x${string}`)
-    const validator = await signerToEcdsaValidator(publicClient, {
-      signer,
-      entryPoint: networkConfig.entryPoint,
-      kernelVersion: KERNEL_V3_1
-    })
+    // Get validator based on wallet type
+    const validator = await getValidator(wallet, publicClient, networkConfig.entryPoint)
 
     // Create kernel account
     const account = await createKernelAccount(publicClient, {
@@ -93,7 +113,6 @@ export async function transferUSDC({
           const zerodevPaymaster = createZeroDevPaymasterClient({
             chain: networkConfig.chain,
             entryPoint: networkConfig.entryPoint,
-            // Get this RPC from ZeroDev dashboard
             transport: http(networkConfig.paymasterUrl),
           })
           return zerodevPaymaster.sponsorUserOperation({

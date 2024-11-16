@@ -129,5 +129,5 @@ export function useTokenBalances(address: Address) {
     return () => clearInterval(interval)
   }, [fetchBalances])
 
-  return { balances, refetch: fetchBalances }
+  return { balances, refetch: fetchBalances, isLoading: isGlobalFetching }
 } 

@@ -16,15 +16,17 @@ import { FaRegMoon, FaSun } from 'react-icons/fa';
 import { IoRefreshOutline } from 'react-icons/io5';
 import { Toaster } from 'react-hot-toast';
 import { fetchAllBalances } from '../hooks/useTokenBalances';
+import { FiUnlock } from 'react-icons/fi'
 
 export default function DashboardContent() {
-  const { wallets, isLoading, createWallet, updateLabel } = useWallets();
+  const { wallets, isLoading, createWallet, updateLabel, burnWallet } = useWallets();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [successData, setSuccessData] = useState<{ address: Address; label: string } | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [needsPin, setNeedsPin] = useState(false);
   const { theme, setTheme } = useTheme();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isBurnModeUnlocked, setIsBurnModeUnlocked] = useState(false)
 
   useEffect(() => {
     const hasPin = !!localStorage.getItem('burnerPin');
@@ -105,6 +107,8 @@ export default function DashboardContent() {
                 key={wallet.address}
                 wallet={wallet}
                 onUpdateLabel={updateLabel}
+                onBurnWallet={burnWallet}
+                canShowBurnButton={isBurnModeUnlocked}
               />
             ))}
           </AnimatePresence>
@@ -132,6 +136,20 @@ export default function DashboardContent() {
                 isRefreshing ? 'rotate-360' : ''
               }`}
             />
+          </motion.button>
+
+          <motion.button
+            className={`p-3 rounded-full transition-colors shadow-lg ${
+              isBurnModeUnlocked 
+                ? 'bg-red-500 hover:bg-red-600 text-white' 
+                : 'bg-box-secondary hover:bg-box-hovered'
+            }`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsBurnModeUnlocked(!isBurnModeUnlocked)}
+            title={isBurnModeUnlocked ? 'Lock burn mode' : 'Unlock burn mode'}
+          >
+            <FiUnlock className="w-4 h-4" />
           </motion.button>
 
           <motion.button

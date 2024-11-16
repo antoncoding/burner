@@ -5,24 +5,28 @@ import { Avatar } from './Avatar'
 import { Wallet } from '../types/wallet'
 import { PencilIcon } from '@heroicons/react/24/outline'
 import { IoCopyOutline } from 'react-icons/io5'
-import { FiCheck, FiExternalLink } from 'react-icons/fi'
+import { FiCheck, FiExternalLink, FiTrash2 } from 'react-icons/fi'
 import { motion } from 'framer-motion'
 import { TbFingerprint, TbKey } from 'react-icons/tb'
 import { useTokenBalances } from '../hooks/useTokenBalances'
 import { base } from 'viem/chains'
 import { TransferModal } from './TransferModal'
+import { BurnWalletModal } from './BurnWalletModal'
 
 type Props = {
   wallet: Wallet
   onUpdateLabel: (address: Address, newLabel: string) => void
+  onBurnWallet: (address: Address) => Promise<void>
+  canShowBurnButton?: boolean
 }
 
-export function WalletCard({ wallet, onUpdateLabel }: Props) {
+export function WalletCard({ wallet, onUpdateLabel, onBurnWallet, canShowBurnButton = false }: Props) {
   const [isEditing, setIsEditing] = useState(false)
   const [label, setLabel] = useState(wallet.label)
   const [copied, setCopied] = useState(false)
-  const { balances, refetch } = useTokenBalances(wallet.address)
+  const { balances, isLoading, refetch } = useTokenBalances(wallet.address)
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false)
+  const [isBurnModalOpen, setIsBurnModalOpen] = useState(false)
 
   const refetchRef = useRef(refetch)
   useEffect(() => {
@@ -51,6 +55,8 @@ export function WalletCard({ wallet, onUpdateLabel }: Props) {
     return baseUrl
   }
 
+  const canBurnWallet = !isLoading && balances.every(b => parseFloat(b.balance) === 0)
+
   const totalBalance = balances.reduce(
     (sum, balance) => sum + parseFloat(balance.balance),
     0
@@ -70,13 +76,20 @@ export function WalletCard({ wallet, onUpdateLabel }: Props) {
     >
       <div className="flex justify-between items-start mb-6">
         <div className="flex items-center gap-4">
-          <div className="relative">
+          <div className="relative group">
             <Avatar address={wallet.address} />
             <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-box-secondary flex items-center justify-center">
               {wallet.type === 'passkey' 
                 ? <TbFingerprint className="w-3 h-3 text-blue-500" />
                 : <TbKey className="w-3 h-3 text-purple-500" />
               }
+            </div>
+            <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              {wallet.type === 'passkey' 
+                ? '🔐 Passkey Controlled Wallet'
+                : '🔑 Local Key Controlled Wallet'
+              }
+              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45" />
             </div>
           </div>
           
@@ -100,12 +113,14 @@ export function WalletCard({ wallet, onUpdateLabel }: Props) {
             ) : (
               <div className="flex items-center gap-2">
                 <span className="font-medium text-lg">{wallet.label}</span>
-                <button 
-                  onClick={() => setIsEditing(true)}
-                  className="p-1 hover:bg-box-primary rounded-full transition-colors"
-                >
-                  <PencilIcon className="w-3 h-3" />
-                </button>
+                {wallet.type === 'localEOA' && (
+                  <button 
+                    onClick={() => setIsEditing(true)}
+                    className="p-1 hover:bg-box-primary rounded-full transition-colors"
+                  >
+                    <PencilIcon className="w-3 h-3" />
+                  </button>
+                )}
               </div>
             )}
             <div className="text-sm text-gray-400 font-mono">
@@ -138,6 +153,23 @@ export function WalletCard({ wallet, onUpdateLabel }: Props) {
               <IoCopyOutline className="w-5 h-5" />
             )}
           </motion.button>
+
+          {canShowBurnButton && (
+            <motion.button
+              className={`p-2 rounded-lg transition-colors ${
+                canBurnWallet
+                  ? 'text-red-500 hover:bg-red-500/10'
+                  : 'text-gray-400 cursor-not-allowed'
+              }`}
+              disabled={!canBurnWallet}
+              whileHover={canBurnWallet ? { scale: 1.05 } : undefined}
+              whileTap={canBurnWallet ? { scale: 0.95 } : undefined}
+              onClick={() => canBurnWallet && setIsBurnModalOpen(true)}
+              title={canBurnWallet ? 'Burn wallet' : 'Cannot burn wallet with balance'}
+            >
+              <FiTrash2 className="w-5 h-5" />
+            </motion.button>
+          )}
         </div>
       </div>
 
@@ -187,6 +219,16 @@ export function WalletCard({ wallet, onUpdateLabel }: Props) {
         onClose={() => setIsTransferModalOpen(false)}
         wallet={wallet}
         balance={usdcBalance}
+      />
+
+      <BurnWalletModal
+        isOpen={isBurnModalOpen}
+        onClose={() => setIsBurnModalOpen(false)}
+        onConfirm={async () => {
+          await onBurnWallet(wallet.address)
+          setIsBurnModalOpen(false)
+        }}
+        walletLabel={wallet.label}
       />
     </motion.div>
   )

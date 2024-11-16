@@ -23,16 +23,6 @@ export const SUPPORTED_STABLES: TokenConfig[] = [
     ],
   },
   {
-    symbol: 'USDT',
-    decimals: 6,
-    icon: '/tokens/usdt.webp',
-    networks: [
-      { chain: mainnet, address: '0xdac17f958d2ee523a2206206994597c13d831ec7' },
-      { chain: optimism, address: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58' },
-      { chain: arbitrum, address: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9' }
-    ],
-  },
-  {
     symbol: 'DAI',
     decimals: 18,
     icon: '/tokens/dai.webp',

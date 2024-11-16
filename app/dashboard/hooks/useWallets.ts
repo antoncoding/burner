@@ -2,8 +2,9 @@ import { Address, Hex } from 'viem'
 import { useState, useEffect } from 'react'
 import { 
   createKernelAccount,
-  createKernelAccountClient,
+  createKernelAccountClient
 } from "@zerodev/sdk"
+import { toPasskeyValidator, toWebAuthnKey, WebAuthnMode, PasskeyValidatorContractVersion } from "@zerodev/passkey-validator"
 import { KERNEL_V3_1 } from "@zerodev/sdk/constants"
 import { signerToEcdsaValidator } from "@zerodev/ecdsa-validator"
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
@@ -11,6 +12,8 @@ import { SignerType, Wallet } from '../types/wallet'
 import { http } from 'viem'
 import { base } from 'viem/chains'
 import { getRpcProviderForChain } from '@/utils/provider'
+import { getNetworkConfig } from '../config/networks'
+import toast from 'react-hot-toast'
 
 type StoredWallet = {
   address: Address
@@ -20,16 +23,13 @@ type StoredWallet = {
   privateKey?: string
 }
 
-// Constants
-const BUNDLER_RPC = process.env.NEXT_PUBLIC_BUNDLER_RPC_URL!
-const ENTRY_POINT = '0x0000000071727De22E5E9d8BAf0edAc6f37da032' // EntryPoint 0.7
-const kernelVersion = KERNEL_V3_1
+const PASSKEY_SERVER_URL = 'https://passkeys.zerodev.app/api/v4'
+const networkConfig = getNetworkConfig(base.id)
+const publicClient = getRpcProviderForChain(base)
 
 export function useWallets() {
   const [wallets, setWallets] = useState<Wallet[]>([])
   const [isLoading, setIsLoading] = useState(true)
-
-  const publicClient = getRpcProviderForChain(base)
 
   useEffect(() => {
     loadStoredWallets()
@@ -57,61 +57,84 @@ export function useWallets() {
       let storedData: StoredWallet
 
       if (data.signerType === 'passkey') {
-        // TODO: Implement passkey flow once ZeroDev provides documentation
-        throw new Error('Passkey implementation pending')
-      } else {
-        // Generate private key for local EOA
-        const privateKey = generatePrivateKey()
-        const signer = privateKeyToAccount(privateKey as Hex)
+        // Create passkey validator
+        const webAuthnKey = await toWebAuthnKey({ 
+          passkeyName: data.label,
+          passkeyServerUrl: PASSKEY_SERVER_URL,
+          mode: WebAuthnMode.Register,
+          passkeyServerHeaders: {}
+        })
 
-        // Create ECDSA validator
-        const ecdsaValidator = await signerToEcdsaValidator(publicClient, {
-          signer,
-          entryPoint: ENTRY_POINT,
-          kernelVersion
+        const passkeyValidator = await toPasskeyValidator(publicClient, {
+          webAuthnKey,
+          entryPoint: networkConfig.entryPoint,
+          kernelVersion: KERNEL_V3_1,
+          validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2
         })
 
         // Create kernel account
         const account = await createKernelAccount(publicClient, {
           plugins: {
-            sudo: ecdsaValidator,
+            sudo: passkeyValidator,
           },
-          entryPoint: ENTRY_POINT,
-          kernelVersion
+          entryPoint: networkConfig.entryPoint,
+          kernelVersion: KERNEL_V3_1
         })
 
         // Create kernel client
         const kernelClient = createKernelAccountClient({
-          account: account as any,
-          entryPoint: ENTRY_POINT,
-          chain: base,
-          bundlerTransport: http(BUNDLER_RPC),
+          account,
+          entryPoint: networkConfig.entryPoint,
+          chain: networkConfig.chain,
+          bundlerTransport: http(networkConfig.bundlerUrl),
         })
 
-        // test signing
-        
+        storedData = {
+          address: account.address as Address,
+          label: data.label,
+          username: data.label, // Using label as username for passkey
+          type: 'passkey'
+        }
+      } else {
+        // Local EOA flow remains the same
+        const privateKey = generatePrivateKey()
+        const signer = privateKeyToAccount(privateKey as Hex)
+        const validator = await signerToEcdsaValidator(publicClient, {
+          signer,
+          entryPoint: networkConfig.entryPoint,
+          kernelVersion: KERNEL_V3_1
+        })
+
+        const account = await createKernelAccount(publicClient, {
+          plugins: {
+            sudo: validator,
+          },
+          entryPoint: networkConfig.entryPoint,
+          kernelVersion: KERNEL_V3_1
+        })
+
         storedData = {
           address: account.address as Address,
           label: data.label,
           username: 'Local Key',
           type: 'localEOA',
-          privateKey: privateKey // Store encrypted in production!
+          privateKey
         }
-
-        // Store wallet data
-        const stored = JSON.parse(localStorage.getItem('storedWallets') || '[]') as StoredWallet[]
-        localStorage.setItem('storedWallets', JSON.stringify([...stored, storedData]))
-
-        // Update state
-        setWallets(prev => [...prev, {
-          address: storedData.address,
-          label: storedData.label,
-          username: storedData.username,
-          type: storedData.type
-        }])
-
-        return storedData.address
       }
+
+      // Store wallet data
+      const stored = JSON.parse(localStorage.getItem('storedWallets') || '[]') as StoredWallet[]
+      localStorage.setItem('storedWallets', JSON.stringify([...stored, storedData]))
+
+      // Update state
+      setWallets(prev => [...prev, {
+        address: storedData.address,
+        label: storedData.label,
+        username: storedData.username,
+        type: storedData.type
+      }])
+
+      return storedData.address
     } catch (error) {
       console.error('Failed to create wallet:', error)
       throw error
@@ -136,10 +159,31 @@ export function useWallets() {
     localStorage.setItem('storedWallets', JSON.stringify(updated))
   }
 
+  const burnWallet = async (address: Address) => {
+    try {
+      // Get stored wallets
+      const stored = JSON.parse(localStorage.getItem('storedWallets') || '[]') as StoredWallet[]
+      
+      // Remove wallet from storage
+      const updatedWallets = stored.filter(w => w.address !== address)
+      localStorage.setItem('storedWallets', JSON.stringify(updatedWallets))
+
+      // Update state
+      setWallets(prev => prev.filter(w => w.address !== address))
+
+      toast.success('🔥 Wallet burned successfully')
+    } catch (error) {
+      console.error('Failed to burn wallet:', error)
+      toast.error('Failed to burn wallet')
+      throw error
+    }
+  }
+
   return { 
     wallets, 
     isLoading, 
     createWallet,
-    updateLabel 
+    updateLabel,
+    burnWallet
   }
 } 

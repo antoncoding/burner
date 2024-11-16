@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Address, Chain } from 'viem'
 import { motion, AnimatePresence } from 'framer-motion'
 import { transferUSDC } from '../hooks/useTransferToken'
 import { transferCrossChain } from '../hooks/useCrossChainTransfer'
-import { Wallet } from '../types/wallet'
+import { TokenBalance, Wallet } from '../types/wallet'
 import { ImSpinner8 } from 'react-icons/im'
 import { base, optimism, arbitrum } from 'viem/chains'
 import { SUPPORTED_STABLES } from '../config/tokens'
@@ -12,7 +12,7 @@ type Props = {
   isOpen: boolean
   onClose: () => void
   wallet: Wallet
-  balance: string
+  balances: TokenBalance[]
 }
 
 type TransferStep = 'input' | 'preparing' | 'confirming'
@@ -20,14 +20,36 @@ type TransferStep = 'input' | 'preparing' | 'confirming'
 const SUPPORTED_CHAINS = [base, optimism, arbitrum]
 const RELAYER_FEE = 0.1 // 0.1 USDC fee
 
-export function TransferModal({ isOpen, onClose, wallet, balance }: Props) {
+export function TransferModal({ isOpen, onClose, wallet, balances }: Props) {
   const [amount, setAmount] = useState('')
   const [toAddress, setToAddress] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [currentStep, setCurrentStep] = useState<TransferStep>('input')
   const [isCrossChain, setIsCrossChain] = useState(false)
-  const [selectedChain, setSelectedChain] = useState<Chain>(base)
-  const [selectedToken, setSelectedToken] = useState(SUPPORTED_STABLES[0])
+
+  const defaultSourceChain = useMemo(() => {
+    if (balances.length === 0) return base
+
+    const chainBalances = balances.reduce((acc, balance) => {
+      const chainId = balance.chain.id
+      acc[chainId] = (acc[chainId] || 0) + parseFloat(balance.balance)
+      return acc
+    }, {} as Record<number, number>)
+
+    const [highestChainId] = Object.entries(chainBalances)
+      .sort(([, a], [, b]) => b - a)[0]
+
+    return SUPPORTED_CHAINS.find(chain => chain.id === Number(highestChainId)) || base
+  }, [balances])
+
+  const [sourceChain, setSourceChain] = useState<Chain>(defaultSourceChain)
+  const [destinationChain, setDestinationChain] = useState<Chain>(base)
+
+  const sourceChainBalance = useMemo(() => {
+    return balances.find(b => 
+      b.token.symbol === 'USDC' && b.chain.id === sourceChain.id
+    )?.balance || '0'
+  }, [balances, sourceChain.id])
 
   const steps = [
     { id: 'preparing', label: 'Preparing Transaction' },
@@ -43,16 +65,13 @@ export function TransferModal({ isOpen, onClose, wallet, balance }: Props) {
 
     try {
       if (isCrossChain) {
-        // Calculate output amount (input - fee)
-        const outputAmount = (parseFloat(amount) - RELAYER_FEE).toFixed(6)
-        if (parseFloat(outputAmount) <= 0) throw new Error('Amount too small for cross-chain transfer')
-
         await transferCrossChain({
           from: wallet.address,
           to: toAddress as Address,
           amount,
           wallet,
-          destinationChainId: selectedChain.id,
+          sourceChainId: sourceChain.id,
+          destinationChainId: destinationChain.id,
           onStep: setCurrentStep
         })
       } else {
@@ -61,6 +80,7 @@ export function TransferModal({ isOpen, onClose, wallet, balance }: Props) {
           to: toAddress as Address,
           amount,
           wallet,
+          chainId: sourceChain.id,
           onStep: setCurrentStep
         })
       }
@@ -118,7 +138,7 @@ export function TransferModal({ isOpen, onClose, wallet, balance }: Props) {
                       onChange={(e) => setAmount(e.target.value)}
                       className="w-full p-2 rounded bg-box-primary border border-gray-600 focus:outline-none focus:border-primary"
                       placeholder="0.00"
-                      max={balance}
+                      max={sourceChainBalance}
                       step="0.01"
                       required
                     />
@@ -127,7 +147,7 @@ export function TransferModal({ isOpen, onClose, wallet, balance }: Props) {
                     </span>
                   </div>
                   <div className="text-sm text-gray-400 mt-1">
-                    Balance: {balance} USDC
+                    Balance: {sourceChainBalance} USDC
                   </div>
                 </div>
 
@@ -145,15 +165,35 @@ export function TransferModal({ isOpen, onClose, wallet, balance }: Props) {
                   {isCrossChain && (
                     <div className="mt-4 space-y-4">
                       <div>
-                        <label className="block mb-2">Destination Chain</label>
+                        <label className="block mb-2">Source Chain</label>
                         <div className="flex gap-2">
                           {SUPPORTED_CHAINS.map((chain) => (
                             <button
                               key={chain.id}
                               type="button"
-                              onClick={() => setSelectedChain(chain)}
+                              onClick={() => setSourceChain(chain)}
                               className={`p-2 rounded-lg border ${
-                                selectedChain.id === chain.id
+                                sourceChain.id === chain.id
+                                  ? 'border-primary bg-primary/10'
+                                  : 'border-gray-600 hover:border-primary/50'
+                              }`}
+                            >
+                              {chain.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block mb-2">Destination Chain</label>
+                        <div className="flex gap-2">
+                          {SUPPORTED_CHAINS.filter(chain => chain.id !== sourceChain.id).map((chain) => (
+                            <button
+                              key={chain.id}
+                              type="button"
+                              onClick={() => setDestinationChain(chain)}
+                              className={`p-2 rounded-lg border ${
+                                destinationChain.id === chain.id
                                   ? 'border-primary bg-primary/10'
                                   : 'border-gray-600 hover:border-primary/50'
                               }`}

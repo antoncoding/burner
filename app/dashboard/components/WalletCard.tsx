@@ -376,7 +376,7 @@ export function WalletCard({ wallet, onUpdateLabel, onBurnWallet, canShowBurnBut
         isOpen={isTransferModalOpen}
         onClose={() => setIsTransferModalOpen(false)}
         wallet={wallet}
-        balance={usdcBalance}
+        balances={balances}
       />
 
       <AnimatePresence>

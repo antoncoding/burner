@@ -1,5 +1,5 @@
 import { Address, parseUnits, http, encodeFunctionData, zeroAddress } from 'viem'
-import { base, mainnet, optimism, arbitrum } from 'viem/chains'
+import { base, optimism, arbitrum } from 'viem/chains'
 import { 
   createKernelAccount,
   createKernelAccountClient,
@@ -16,7 +16,7 @@ import { fetchAllBalances } from './useTokenBalances'
 import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
 
 const SPOKE_POOLS: { [chainId: number]: Address } = {
-  [base.id]: '0x09aea4b2242abc8bb4bb78d537a67a245a7bec64',
+  [base.id]: '0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64',
   [arbitrum.id]: '0xe35e9842fceaca96570b734083f4a58e8f7c5f2a',
   [optimism.id]: '0x6f26Bf09B1C792e3228e5467807a900A503c0281',
 }
@@ -49,7 +49,7 @@ export async function transferCrossChain({
   to,
   amount,
   wallet,
-  sourceChainId = base.id,
+  sourceChainId,
   destinationChainId,
   onStep,
 }: {
@@ -57,7 +57,7 @@ export async function transferCrossChain({
   to: Address
   amount: string
   wallet: Wallet
-  sourceChainId?: number
+  sourceChainId: number
   destinationChainId: number
   onStep?: (step: TransferStep) => void
 }) {
@@ -107,31 +107,22 @@ export async function transferCrossChain({
       kernelVersion: KERNEL_V3_1
     })
 
-    // Create kernel client with proper middleware
     const kernelClient = createKernelAccountClient({
       account,
       entryPoint: networkConfig.entryPoint,
       chain: networkConfig.chain,
       bundlerTransport: http(networkConfig.bundlerUrl),
       middleware: {
-        // Important: This is where the sponsorship happens
         sponsorUserOperation: async ({ userOperation }) => {
           const zerodevPaymaster = createZeroDevPaymasterClient({
             chain: networkConfig.chain,
             entryPoint: networkConfig.entryPoint,
             transport: http(networkConfig.paymasterUrl),
           })
-
-          const sponsored = await zerodevPaymaster.sponsorUserOperation({
+          return zerodevPaymaster.sponsorUserOperation({
             userOperation,
             entryPoint: networkConfig.entryPoint,
           })
-
-          return {
-            ...sponsored,
-            // Make sure paymasterAndData is properly set
-            paymasterAndData: sponsored.paymasterAndData || '0x'
-          }
         }
       }
     })

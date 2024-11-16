@@ -1,18 +1,21 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Address, formatUnits } from 'viem'
-import { base, mainnet } from 'viem/chains'
+import { base, mainnet, optimism, arbitrum } from 'viem/chains'
 import { SUPPORTED_STABLES } from '../config/tokens'
-import { getRpcProviderForChain } from '@/utils/provider'
 import { TokenBalance } from '../types/wallet'
-import { erc20Abi } from 'viem'
 import toast from 'react-hot-toast'
-
-// Create clients outside the hook
-const mainnetClient = getRpcProviderForChain(mainnet)
-const baseClient = getRpcProviderForChain(base)
 
 // Global loading state
 let isGlobalFetching = false
+
+const INCH_API_KEY = '0rSrfQPlKkOGeEmJ1dVENdgnJhkDjSWt'
+
+const CHAIN_IDS = {
+  [mainnet.id]: '1',
+  [base.id]: '8453',
+  [optimism.id]: '10',
+  [arbitrum.id]: '42161'
+}
 
 const toastStyle = {
   style: {
@@ -28,6 +31,28 @@ const toastStyle = {
   },
 }
 
+async function fetch1inchBalances(address: Address, chainId: number): Promise<Record<string, string>> {
+  try {
+    const response = await fetch(
+      `https://api.1inch.dev/balance/v1.2/${chainId}/balances/${address}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${INCH_API_KEY}`
+        }
+      }
+    )
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    return await response.json()
+  } catch (error) {
+    console.error(`Failed to fetch balances for chain ${chainId}:`, error)
+    return {}
+  }
+}
+
 // Create a global fetch function
 export async function fetchAllBalances(addresses: Address[]) {
   if (isGlobalFetching) return
@@ -40,8 +65,6 @@ export async function fetchAllBalances(addresses: Address[]) {
       fetchBalancesForAddress(address)
     ))
 
-    const totalTokens = allBalances.reduce((sum, balances) => sum + balances.length, 0)
-    
     toast.success(`✨ Updated ${addresses.length} wallets`, {
       ...toastStyle,
       id: toastId
@@ -66,35 +89,29 @@ export async function fetchAllBalances(addresses: Address[]) {
 
 // Helper function to fetch balances for a single address
 async function fetchBalancesForAddress(address: Address): Promise<TokenBalance[]> {
-  const balancePromises: Promise<TokenBalance | null>[] = []
+  const balances: TokenBalance[] = []
 
-  SUPPORTED_STABLES.forEach(token => {
-    token.networks.forEach(network => {
-      const client = network.chain.id === base.id ? baseClient : mainnetClient
-      
-      const promise = client.readContract({
-        address: network.address as Address,
-        abi: erc20Abi,
-        functionName: 'balanceOf',
-        args: [address],
-      }).then(balance => {
-        const formattedBalance = formatUnits(balance, token.decimals)
-        if (parseFloat(formattedBalance) > 0) {
-          return {
-            token,
-            balance: formattedBalance,
-            chain: network.chain
-          } as TokenBalance
-        }
-        return null
-      }).catch(() => null)
+  // Fetch balances for each supported chain
+  for (const chainId of Object.keys(CHAIN_IDS).map(Number)) {
+    const rawBalances = await fetch1inchBalances(address, chainId)
+    
+    // For each supported token, check if we have a balance
+    SUPPORTED_STABLES.forEach(token => {
+      const networkConfig = token.networks.find(n => n.chain.id === chainId)
+      if (!networkConfig) return
 
-      balancePromises.push(promise)
+      const balance = rawBalances[networkConfig.address.toLowerCase()]
+      if (balance && BigInt(balance) > 0n) {
+        balances.push({
+          token,
+          balance: formatUnits(BigInt(balance), token.decimals),
+          chain: networkConfig.chain
+        })
+      }
     })
-  })
+  }
 
-  const results = await Promise.all(balancePromises)
-  return results.filter((b): b is TokenBalance => b !== null)
+  return balances
 }
 
 // Hook for individual wallet balances

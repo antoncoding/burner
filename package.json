@@ -47,6 +47,7 @@
     "@zerodev/wallet": "^0.1.1",
     "@zerodev/webauthn-key": "^5.3.3",
     "abitype": "^0.10.3",
+    "axios": "^1.7.7",
     "clipboard-copy": "^4.0.1",
     "clsx": "^2.1.0",
     "date-fns": "^4.1.0",

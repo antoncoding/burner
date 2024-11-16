@@ -56,8 +56,17 @@ export default function DashboardContent() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    const addresses = wallets.map(w => w.address);
-    await fetchAllBalances(addresses);
+    
+    // Emit both refresh events
+    window.dispatchEvent(new CustomEvent('refreshBalances', {
+      detail: { addresses: wallets.map(w => w.address) }
+    }))
+    window.dispatchEvent(new CustomEvent('refreshHistory', {
+      detail: { addresses: wallets.map(w => w.address) }
+    }))
+
+    // Wait a bit to show the animation
+    await new Promise(resolve => setTimeout(resolve, 1000))
     setIsRefreshing(false);
   };
 

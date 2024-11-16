@@ -9,12 +9,6 @@ type Props = { children: ReactNode };
 const queryClient = new QueryClient();
 
 const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL ?? '';
-
-if (!rpcUrl) {
-  const rpcErrMessage =
-    'Missing RPC URL or ZeroDev API Key. Please check your environment variables.';
-  throw new Error(rpcErrMessage);
-}
 const wagmiConfig = createWagmiConfig(rpcUrl);
 
 /**

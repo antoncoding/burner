@@ -15,7 +15,6 @@ import { useTheme } from 'next-themes';
 import { FaRegMoon, FaSun } from 'react-icons/fa';
 import { IoRefreshOutline } from 'react-icons/io5';
 import { Toaster } from 'react-hot-toast';
-import { fetchAllBalances } from '../hooks/useTokenBalances';
 import { FiUnlock } from 'react-icons/fi'
 
 export default function DashboardContent() {

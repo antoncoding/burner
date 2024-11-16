@@ -8,8 +8,6 @@ import toast from 'react-hot-toast'
 // Global loading state
 let isGlobalFetching = false
 
-const INCH_API_KEY = '0rSrfQPlKkOGeEmJ1dVENdgnJhkDjSWt'
-
 const CHAIN_IDS = {
   [mainnet.id]: '1',
   [base.id]: '8453',

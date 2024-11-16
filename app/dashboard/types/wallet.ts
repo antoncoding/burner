@@ -21,17 +21,37 @@ export type SignerType = 'passkey' | 'localEOA' | 'biconomyEOA'
 
 export type WalletVendor = 'zerodev' | 'biconomy'
 
+export type WalletImplementation = {
+  vendor: WalletVendor
+  description: string
+  icon: string
+}
+
+export const WALLET_IMPLEMENTATIONS: Record<WalletVendor, WalletImplementation> = {
+  zerodev: {
+    vendor: 'zerodev',
+    description: 'Industry standard smart accounts',
+    icon: '/vendors/zerodev.png',
+  },
+  biconomy: {
+    vendor: 'biconomy',
+    description: 'Optimized for token transfers',
+    icon: '/vendors/biconomy.png',
+  }
+}
+
 export type Wallet = {
   address: Address
   label: string
   username: string
   type: SignerType
+  vendor: WalletVendor
 }
 
 export type CreateWalletFormData = {
   label: string
   signerType: SignerType
-  vendor?: WalletVendor
+  vendor: WalletVendor
 }
 
 export type TokenTransfer = {

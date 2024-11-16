@@ -8,7 +8,7 @@ import { toPasskeyValidator, toWebAuthnKey, WebAuthnMode, PasskeyValidatorContra
 import { KERNEL_V3_1 } from "@zerodev/sdk/constants"
 import { signerToEcdsaValidator } from "@zerodev/ecdsa-validator"
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
-import { SignerType, Wallet } from '../types/wallet'
+import { SignerType, Wallet, WalletVendor } from '../types/wallet'
 import { http } from 'viem'
 import { base } from 'viem/chains'
 import { getRpcProviderForChain } from '@/utils/provider'
@@ -20,6 +20,7 @@ type StoredWallet = {
   label: string
   username: string
   type: SignerType
+  vendor: WalletVendor
   privateKey?: string
 }
 
@@ -42,7 +43,8 @@ export function useWallets() {
         address: wallet.address,
         label: wallet.label,
         username: wallet.username,
-        type: wallet.type
+        type: wallet.type,
+        vendor: wallet.vendor || 'zerodev'
       }))
       setWallets(loadedWallets)
     } catch (error) {
@@ -52,7 +54,7 @@ export function useWallets() {
     }
   }
 
-  const createWallet = async (data: { label: string, signerType: SignerType }) => {
+  const createWallet = async (data: { label: string, signerType: SignerType, vendor: WalletVendor }) => {
     try {
       let storedData: StoredWallet
 
@@ -92,11 +94,12 @@ export function useWallets() {
         storedData = {
           address: account.address as Address,
           label: data.label,
-          username: data.label, // Using label as username for passkey
-          type: 'passkey'
+          username: data.label,
+          type: 'passkey',
+          vendor: 'zerodev'
         }
       } else {
-        // Local EOA flow remains the same
+        // Local EOA flow
         const privateKey = generatePrivateKey()
         const signer = privateKeyToAccount(privateKey as Hex)
         const validator = await signerToEcdsaValidator(publicClient, {
@@ -118,6 +121,7 @@ export function useWallets() {
           label: data.label,
           username: 'Local Key',
           type: 'localEOA',
+          vendor: data.vendor,
           privateKey
         }
       }
@@ -131,7 +135,8 @@ export function useWallets() {
         address: storedData.address,
         label: storedData.label,
         username: storedData.username,
-        type: storedData.type
+        type: storedData.type,
+        vendor: storedData.vendor
       }])
 
       return storedData.address

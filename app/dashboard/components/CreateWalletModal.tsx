@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { SignerType, CreateWalletFormData, WalletVendor } from '../types/wallet'
+import { SignerType, CreateWalletFormData, WalletVendor, WALLET_IMPLEMENTATIONS } from '../types/wallet'
 import { IoCopyOutline } from 'react-icons/io5'
+import Image from 'next/image'
 
 type Props = {
   isOpen: boolean
@@ -108,31 +109,37 @@ export function CreateWalletModal({ isOpen, onClose, onSubmit }: Props) {
                 </div>
 
                 {selectedSigner === 'localEOA' && (
-                  <div className="mt-2 ml-6 space-y-2">
-                    <label className="block text-sm text-gray-400">Select Vendor</label>
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        className={`px-3 py-1 rounded-full text-sm ${
-                          selectedVendor === 'biconomy'
-                            ? 'bg-primary text-white'
-                            : 'bg-box-primary hover:bg-box-hovered'
-                        }`}
-                        onClick={() => setSelectedVendor('biconomy')}
-                      >
-                        Biconomy
-                      </button>
-                      <button
-                        type="button"
-                        className={`px-3 py-1 rounded-full text-sm ${
-                          selectedVendor === 'zerodev'
-                            ? 'bg-primary text-white'
-                            : 'bg-box-primary hover:bg-box-hovered'
-                        }`}
-                        onClick={() => setSelectedVendor('zerodev')}
-                      >
-                        ZeroDev
-                      </button>
+                  <div className="mt-4 space-y-2">
+                    <label className="block text-sm text-gray-400">Select Implementation</label>
+                    <div className="grid grid-cols-2 gap-4">
+                      {Object.values(WALLET_IMPLEMENTATIONS).map((impl) => (
+                        <div
+                          key={impl.vendor}
+                          className={`p-4 rounded-lg cursor-pointer transition-all border-2 ${
+                            selectedVendor === impl.vendor
+                              ? 'border-primary bg-primary/5'
+                              : 'border-gray-600 hover:border-primary/50'
+                          }`}
+                          onClick={() => setSelectedVendor(impl.vendor)}
+                        >
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="relative w-8 h-8">
+                              <Image
+                                src={impl.icon}
+                                alt={impl.vendor}
+                                fill
+                                className="object-contain"
+                              />
+                            </div>
+                            <span className="font-medium capitalize">
+                              {impl.vendor}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-400 mb-2">
+                            {impl.description}
+                          </p>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}

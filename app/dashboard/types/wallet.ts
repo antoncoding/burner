@@ -6,14 +6,15 @@ export type TokenBalance = {
   icon: string
 }
 
+export type SignerType = 'passkey' | 'localEOA'
+
 export type Wallet = {
   address: Address
   label: string
   balances: TokenBalance[]
   username: string
+  type: SignerType
 }
-
-export type SignerType = 'passkey' | 'localEOA'
 
 export type CreateWalletFormData = {
   label: string

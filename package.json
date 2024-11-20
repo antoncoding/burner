@@ -87,7 +87,6 @@
     "shikiji-core": "^0.9.17",
     "unified": "^11.0.4",
     "viem": "2.17.x",
-    "wagmi": "2.9.2",
     "workbox-webpack-plugin": "^7.0.0"
   },
   "devDependencies": {
@@ -111,7 +110,6 @@
     "@typescript-eslint/type-utils": "^5.54.1",
     "@typescript-eslint/types": "^5.54.1",
     "@typescript-eslint/utils": "^5.54.1",
-    "@wagmi/cli": "2.1.4",
     "autoprefixer": "^10.4.16",
     "babel-jest": "^29.7.0",
     "eslint": "^8.27.0",

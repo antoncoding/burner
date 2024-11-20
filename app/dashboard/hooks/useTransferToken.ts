@@ -16,8 +16,8 @@ import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { bundlerActions } from 'permissionless'
 import { fetchAllBalances } from './useTokenBalances'
 import { PasskeyValidatorContractVersion, toPasskeyValidator, toWebAuthnKey, WebAuthnMode } from "@zerodev/passkey-validator"
-import { erc20Abi } from '@/hooks/ERC20Hooks'
 import { EntryPoint } from 'permissionless/types'
+import { erc20Abi } from 'viem'
 
 const toastStyle = {
   style: {

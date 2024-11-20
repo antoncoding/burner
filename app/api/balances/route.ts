@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const INCH_API_KEY = process.env.ONEINCHE_KEY;
-
-console.log('INCH_API_KEY', INCH_API_KEY)
+const INCH_API_KEY = '0rSrfQPlKkOGeEmJ1dVENdgnJhkDjSWt'
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams
@@ -18,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const response = await fetch(
-      `https://api.1inch.dev/balance/v1.2/${chainId}/balances/${address}`,
+      `https://proxy-app.1inch.io/v2.0/balance/v1.2/${chainId}/balances/${address}`,
       {
         headers: {
           'Authorization': `Bearer ${INCH_API_KEY}`
@@ -27,7 +25,6 @@ export async function GET(req: NextRequest) {
     )
     
     if (!response.ok) {
-      console.log('error', response)
       throw new Error(`HTTP error! status: ${response.status}`)
     }
     

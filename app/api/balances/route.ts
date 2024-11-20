@@ -60,7 +60,6 @@ export async function GET(req: NextRequest) {
 
     console.log('validTokens', validTokens)
 
-
     return NextResponse.json({
       tokens: validTokens
     });

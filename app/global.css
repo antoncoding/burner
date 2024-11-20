@@ -127,7 +127,7 @@ pre {
 }
 
 .btn-primary {
-  @apply bg-primary hover:bg-primary/90 text-white;
+  @apply bg-primary text-white hover:bg-primary/90;
 }
 
 @keyframes rotate-360 {

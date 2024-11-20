@@ -15,8 +15,8 @@ import { useTheme } from 'next-themes';
 import { FaRegMoon, FaSun } from 'react-icons/fa';
 import { IoRefreshOutline } from 'react-icons/io5';
 import { Toaster } from 'react-hot-toast';
-import { FiUnlock } from 'react-icons/fi'
-import { fetchAllHistory } from '../hooks/useTokenHistory'
+import { FiUnlock } from 'react-icons/fi';
+import { fetchAllHistory } from '../hooks/useTokenHistory';
 
 export default function DashboardContent() {
   const { wallets, isLoading, createWallet, updateLabel, burnWallet } = useWallets();
@@ -26,7 +26,7 @@ export default function DashboardContent() {
   const [needsPin, setNeedsPin] = useState(false);
   const { theme, setTheme } = useTheme();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isBurnModeUnlocked, setIsBurnModeUnlocked] = useState(false)
+  const [isBurnModeUnlocked, setIsBurnModeUnlocked] = useState(false);
 
   useEffect(() => {
     const hasPin = !!localStorage.getItem('burnerPin');
@@ -56,15 +56,15 @@ export default function DashboardContent() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    
+
     // Fetch both balances and history
     await Promise.all([
-      fetchAllHistory(wallets.map(w => w.address)),
-      fetchAllHistory(wallets.map(w => w.address))
-    ])
+      fetchAllHistory(wallets.map((w) => w.address)),
+      fetchAllHistory(wallets.map((w) => w.address)),
+    ]);
 
     // Wait a bit to show the animation
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     setIsRefreshing(false);
   };
 
@@ -72,17 +72,19 @@ export default function DashboardContent() {
     return needsPin ? (
       <SetPinModal isOpen={true} onSubmit={handleSetPin} />
     ) : (
-      <EnterPinModal 
-        isOpen={true} 
+      <EnterPinModal
+        isOpen={true}
         onSubmit={handleEnterPin}
-        onError={() => {/* TODO: Handle error */}}
+        onError={() => {
+          /* TODO: Handle error */
+        }}
       />
     );
   }
 
   return (
     <>
-      <Toaster 
+      <Toaster
         position="bottom-right"
         toastOptions={{
           duration: 3000,
@@ -93,18 +95,16 @@ export default function DashboardContent() {
           },
         }}
       />
-      
-      <motion.main 
-        className="container max-w-2xl mx-auto px-4 py-8 relative"
+
+      <motion.main
+        className="container relative mx-auto max-w-2xl px-4 py-8"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
       >
-        <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold mb-2">Your Burners</h1>
-          <p className="text-gray-400">
-            Create and manage your burner wallets
-          </p>
+        <div className="mb-12 text-center">
+          <h1 className="mb-2 text-3xl font-bold">Your Burners</h1>
+          <p className="text-gray-400">Create and manage your burner wallets</p>
         </div>
 
         <div className="flex flex-col gap-4">
@@ -119,36 +119,36 @@ export default function DashboardContent() {
               />
             ))}
           </AnimatePresence>
-          
-          <motion.button 
+
+          <motion.button
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-box-secondary w-full rounded-lg p-8 flex items-center justify-center gap-2 hover:bg-box-secondary/90 transition-all duration-200"
+            className="bg-box-secondary hover:bg-box-secondary/90 flex w-full items-center justify-center gap-2 rounded-lg p-8 transition-all duration-200"
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
           >
-            <PlusIcon className="w-5 h-5" />
+            <PlusIcon className="h-5 w-5" />
             <span>Create New Burner</span>
           </motion.button>
         </div>
 
-        <div className="fixed bottom-8 left-8 md:left-12 flex flex-col gap-3">
+        <div className="fixed bottom-8 left-8 flex flex-col gap-3 md:left-12">
           <motion.button
-            className="p-3 rounded-full bg-box-secondary hover:bg-box-hovered transition-colors shadow-lg"
+            className="bg-box-secondary hover:bg-box-hovered rounded-full p-3 shadow-lg transition-colors"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleRefresh}
           >
-            <IoRefreshOutline 
-              className={`w-4 h-4 transition-transform duration-1000 ${
+            <IoRefreshOutline
+              className={`h-4 w-4 transition-transform duration-1000 ${
                 isRefreshing ? 'rotate-360' : ''
               }`}
             />
           </motion.button>
 
           <motion.button
-            className={`p-3 rounded-full transition-colors shadow-lg ${
-              isBurnModeUnlocked 
-                ? 'bg-red-500 hover:bg-red-600 text-white' 
+            className={`rounded-full p-3 shadow-lg transition-colors ${
+              isBurnModeUnlocked
+                ? 'bg-red-500 text-white hover:bg-red-600'
                 : 'bg-box-secondary hover:bg-box-hovered'
             }`}
             whileHover={{ scale: 1.05 }}
@@ -156,20 +156,16 @@ export default function DashboardContent() {
             onClick={() => setIsBurnModeUnlocked(!isBurnModeUnlocked)}
             title={isBurnModeUnlocked ? 'Lock burn mode' : 'Unlock burn mode'}
           >
-            <FiUnlock className="w-4 h-4" />
+            <FiUnlock className="h-4 w-4" />
           </motion.button>
 
           <motion.button
-            className="p-3 rounded-full bg-box-secondary hover:bg-box-hovered transition-colors shadow-lg"
+            className="bg-box-secondary hover:bg-box-hovered rounded-full p-3 shadow-lg transition-colors"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           >
-            {theme === 'dark' ? (
-              <FaSun className="w-4 h-4" />
-            ) : (
-              <FaRegMoon className="w-4 h-4" />
-            )}
+            {theme === 'dark' ? <FaSun className="h-4 w-4" /> : <FaRegMoon className="h-4 w-4" />}
           </motion.button>
         </div>
 

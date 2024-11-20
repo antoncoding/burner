@@ -10,9 +10,7 @@ import { NextUIProvider } from '@nextui-org/system';
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider disableTransitionOnChange attribute="class">
-      <NextUIProvider>
-        {children}
-      </NextUIProvider>
+      <NextUIProvider>{children}</NextUIProvider>
     </ThemeProvider>
   );
 }

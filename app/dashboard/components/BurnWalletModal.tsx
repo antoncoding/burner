@@ -1,41 +1,41 @@
-import { useState } from 'react'
-import { Address } from 'viem'
-import { motion, AnimatePresence } from 'framer-motion'
-import { FiTrash2 } from 'react-icons/fi'
+import { useState } from 'react';
+import { Address } from 'viem';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiTrash2 } from 'react-icons/fi';
 
 type Props = {
-  isOpen: boolean
-  onClose: () => void
-  onConfirm: () => Promise<void>
-  walletLabel: string
-}
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+  walletLabel: string;
+};
 
 export function BurnWalletModal({ isOpen, onClose, onConfirm, walletLabel }: Props) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleConfirm = async () => {
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
-      await onConfirm()
-      onClose()
+      await onConfirm();
+      onClose();
     } catch (error) {
-      console.error('Failed to burn wallet:', error)
+      console.error('Failed to burn wallet:', error);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <motion.div 
-            className="bg-box-secondary rounded-lg p-6 max-w-md w-full"
+          <motion.div
+            className="bg-box-secondary w-full max-w-md rounded-lg p-6"
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
@@ -44,27 +44,28 @@ export function BurnWalletModal({ isOpen, onClose, onConfirm, walletLabel }: Pro
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ type: "spring", duration: 0.5 }}
-                className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4"
+                transition={{ type: 'spring', duration: 0.5 }}
+                className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10"
               >
-                <FiTrash2 className="w-8 h-8 text-red-500" />
+                <FiTrash2 className="h-8 w-8 text-red-500" />
               </motion.div>
 
-              <h2 className="text-2xl font-bold mb-2">Burn Wallet</h2>
-              <p className="text-gray-400 mb-6">
-                Are you sure you want to permanently remove "{walletLabel}"? This action cannot be undone.
+              <h2 className="mb-2 text-2xl font-bold">Burn Wallet</h2>
+              <p className="mb-6 text-gray-400">
+                Are you sure you want to permanently remove "{walletLabel}"? This action cannot be
+                undone.
               </p>
 
-              <div className="flex gap-3 w-full">
+              <div className="flex w-full gap-3">
                 <button
                   onClick={onClose}
-                  className="flex-1 px-4 py-2 rounded hover:bg-box-hovered transition-colors"
+                  className="hover:bg-box-hovered flex-1 rounded px-4 py-2 transition-colors"
                 >
                   Cancel
                 </button>
                 <motion.button
                   onClick={handleConfirm}
-                  className="flex-1 bg-red-500 text-white px-4 py-2 rounded disabled:opacity-50 transition-colors hover:bg-red-600"
+                  className="flex-1 rounded bg-red-500 px-4 py-2 text-white transition-colors hover:bg-red-600 disabled:opacity-50"
                   disabled={isSubmitting}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -77,5 +78,5 @@ export function BurnWalletModal({ isOpen, onClose, onConfirm, walletLabel }: Pro
         </motion.div>
       )}
     </AnimatePresence>
-  )
-} 
+  );
+}

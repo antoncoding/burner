@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const INCH_API_KEY = '0rSrfQPlKkOGeEmJ1dVENdgnJhkDjSWt';
+const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY;
+const ALCHEMY_URLS = {
+  '1': `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+  '8453': `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+  '10': `https://opt-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+  '42161': `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+};
+
+type TokenBalance = {
+  contractAddress: string;
+  tokenBalance: string;
+};
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
@@ -12,21 +23,48 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const response = await fetch(
-      `https://proxy-app.1inch.io/v2.0/balance/v1.2/${chainId}/balances/${address}`,
-      {
-        headers: {
-          Authorization: `Bearer ${INCH_API_KEY}`,
-        },
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    const alchemyUrl = ALCHEMY_URLS[chainId as keyof typeof ALCHEMY_URLS];
+    if (!alchemyUrl) {
+      throw new Error(`Chain ${chainId} not supported`);
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    // Get token balances
+    const balancesResponse = await fetch(alchemyUrl, {
+      method: 'POST',
+      headers: { 
+        'accept': 'application/json', 
+        'content-type': 'application/json' 
+      },
+      body: JSON.stringify({
+        id: 1,
+        jsonrpc: '2.0',
+        method: 'alchemy_getTokenBalances',
+        params: [address]
+      })
+    });
+
+    if (!balancesResponse.ok) {
+      throw new Error(`HTTP error! status: ${balancesResponse.status}`);
+    }
+
+    const balancesData = await balancesResponse.json();
+    const nonZeroBalances: TokenBalance[] = balancesData.result.tokenBalances.filter(
+      (token: TokenBalance) => token.tokenBalance !== '0x0000000000000000000000000000000000000000000000000000000000000000'
+    );
+
+    // Filter out failed metadata requests
+    const validTokens = nonZeroBalances.filter(token => token !== null).map(token => ({
+      address: token.contractAddress,
+      balance: BigInt(token.tokenBalance).toString(10)
+    }));
+
+    console.log('validTokens', validTokens)
+
+
+    return NextResponse.json({
+      tokens: validTokens
+    });
+
   } catch (error) {
     console.error('Failed to fetch balances:', error);
     return NextResponse.json({ error: 'Failed to fetch balances' }, { status: 500 });

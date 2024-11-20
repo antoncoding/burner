@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Address, formatUnits } from 'viem';
 import { base, mainnet, optimism, arbitrum } from 'viem/chains';
 import { SUPPORTED_STABLES } from '../config/tokens';
-import { TokenBalance } from '../types/wallet';
+import { TokenBalance, TokenMetadata } from '../types/wallet';
 import toast from 'react-hot-toast';
 
 // Global loading state
@@ -15,108 +15,118 @@ const CHAIN_IDS = {
   [arbitrum.id]: '42161',
 };
 
-const toastStyle = {
-  style: {
-    background: 'var(--color-background-secondary)',
-    color: 'var(--color-text)',
-    border: '1px solid var(--color-background-hovered)',
-    padding: '16px',
-    borderRadius: '12px',
-  },
-  iconTheme: {
-    primary: '#22c55e',
-    secondary: '#FFFFFF',
-  },
-};
+// Helper function to add delay
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function fetch1inchBalances(
-  address: Address,
-  chainId: number,
-): Promise<Record<string, string>> {
-  try {
-    const response = await fetch(`/api/balances?address=${address}&chainId=${chainId}`);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error(`Failed to fetch balances for chain ${chainId}:`, error);
-    return {};
-  }
-}
-
-// Create a global fetch function
 export async function fetchAllBalances(addresses: Address[]) {
   if (isGlobalFetching) return;
   isGlobalFetching = true;
 
-  const toastId = toast.loading('🔍 Scanning all wallets...', toastStyle);
+  const toastId = toast.loading('🔍 Scanning all wallets...', {
+    style: {
+      background: 'var(--color-background-secondary)',
+      color: 'var(--color-text)',
+      border: '1px solid var(--color-background-hovered)',
+      padding: '16px',
+      borderRadius: '12px',
+    },
+  });
 
   try {
     const allBalances = await Promise.all(
-      addresses.map((address) => fetchBalancesForAddress(address)),
+      addresses.map(async (address, addressIndex) => {
+        if (addressIndex > 0) {
+          await delay(1100);
+        }
+
+        const chainBalances = await Promise.all(
+          Object.values(CHAIN_IDS).map(async (chainId, chainIndex) => {
+            if (chainIndex > 0) {
+              await delay(1100);
+            }
+
+            try {
+              const response = await fetch(`/api/balances?address=${address}&chainId=${chainId}`);
+              if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+              const data = await response.json();
+              return { chainId, data };
+            } catch (error) {
+              console.error(`Failed to fetch balances for chain ${chainId}:`, error);
+              return { chainId, data: null };
+            }
+          })
+        );
+
+        return { address, balances: chainBalances };
+      })
     );
 
-    toast.success(`✨ Updated ${addresses.length} wallets`, {
-      ...toastStyle,
-      id: toastId,
-    });
-
-    // Emit an event that individual hooks can listen to
-    window.dispatchEvent(
-      new CustomEvent('balancesUpdated', {
-        detail: { addresses },
-      }),
-    );
+    toast.success(`✨ Updated ${addresses.length} wallets`, { id: toastId });
+    window.dispatchEvent(new CustomEvent('balancesUpdated', {
+      detail: { results: allBalances }
+    }));
 
     return allBalances;
   } catch (error) {
     console.error('Failed to fetch balances:', error);
-    toast.error('😅 Failed to update some balances', {
-      ...toastStyle,
-      id: toastId,
-    });
+    toast.error('😅 Failed to update some balances', { id: toastId });
   } finally {
     isGlobalFetching = false;
   }
 }
 
-// Helper function to fetch balances for a single address
-async function fetchBalancesForAddress(address: Address): Promise<TokenBalance[]> {
-  const balances: TokenBalance[] = [];
+export function useTokenBalances(address: Address) {
+  const [balances, setBalances] = useState<TokenBalance[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch balances for each supported chain
-  for (const chainId of Object.keys(CHAIN_IDS).map(Number)) {
-    const rawBalances = await fetch1inchBalances(address, chainId);
+  const processTokenData = (tokens: TokenMetadata[], chainId: number) => {
+    return SUPPORTED_STABLES.flatMap(supportedToken => {
+      const networkConfig = supportedToken.networks.find(n => n.chain.id === chainId);
+      if (!networkConfig) return [];
 
-    // For each supported token, check if we have a balance
-    SUPPORTED_STABLES.forEach((token) => {
-      const networkConfig = token.networks.find((n) => n.chain.id === chainId);
-      if (!networkConfig) return;
+      const token = tokens.find(t => 
+        t.address.toLowerCase() === networkConfig.address.toLowerCase()
+      );
+      
+      if (!token) return [];
 
-      const balance = rawBalances[networkConfig.address.toLowerCase()];
-      if (balance && BigInt(balance) > 0n) {
-        balances.push({
-          token,
-          balance: formatUnits(BigInt(balance), token.decimals),
-          chain: networkConfig.chain,
-        });
-      }
+      return [{
+        token: supportedToken,
+        balance: formatUnits(BigInt(token.balance), token.decimals),
+        chain: networkConfig.chain,
+        metadata: token
+      }];
     });
   }
 
-  return balances;
-}
-
-// Hook for individual wallet balances
-export function useTokenBalances(address: Address) {
-  const [balances, setBalances] = useState<TokenBalance[]>([]);
-
   const fetchBalances = useCallback(async () => {
-    const newBalances = await fetchBalancesForAddress(address);
-    setBalances(newBalances);
+    setIsLoading(true);
+
+    try {
+      const chainBalances = await Promise.all(
+        Object.entries(CHAIN_IDS).map(async ([_, chainId], index) => {
+          if (index > 0) {
+            await delay(1100);
+          }
+
+          const response = await fetch(`/api/balances?address=${address}&chainId=${chainId}`);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          
+          const data = await response.json();
+          return { chainId: Number(chainId), tokens: data.tokens || [] };
+        })
+      );
+
+      const processedBalances = chainBalances.flatMap(({ chainId, tokens }) => 
+        processTokenData(tokens, chainId)
+      );
+
+      setBalances(processedBalances);
+    } catch (error) {
+      console.error('Failed to fetch balances:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }, [address]);
 
   // Initial fetch
@@ -126,22 +136,19 @@ export function useTokenBalances(address: Address) {
 
   // Listen for global balance updates
   useEffect(() => {
-    const handleBalancesUpdated = (event: CustomEvent<{ addresses: Address[] }>) => {
-      if (event.detail.addresses.includes(address)) {
-        fetchBalances();
+    const handleBalancesUpdated = (event: CustomEvent<{ results: { address: Address, balances: any[] }[] }>) => {
+      const result = event.detail.results.find(r => r.address === address);
+      if (result?.balances) {
+        const processedBalances = result.balances.flatMap(({ chainId, data }) => 
+          data?.tokens ? processTokenData(data.tokens, Number(chainId)) : []
+        );
+        setBalances(processedBalances);
       }
-    };
+    }
 
     window.addEventListener('balancesUpdated', handleBalancesUpdated as EventListener);
-    return () =>
-      window.removeEventListener('balancesUpdated', handleBalancesUpdated as EventListener);
-  }, [address, fetchBalances]);
+    return () => window.removeEventListener('balancesUpdated', handleBalancesUpdated as EventListener);
+  }, [address]);
 
-  // Auto-refresh every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(fetchBalances, 30000);
-    return () => clearInterval(interval);
-  }, [fetchBalances]);
-
-  return { balances, refetch: fetchBalances, isLoading: isGlobalFetching };
+  return { balances, isLoading, refetch: fetchBalances };
 }

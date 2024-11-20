@@ -4,9 +4,8 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { base } from 'viem/chains'
 
 const REGISTER_PK = process.env.REGISTER_PK
-console.log('REGISTER_PK', REGISTER_PK)
 
-const REGISTRY_ADDRESS = '0xb14c2408705e1acc425d2e72f65bf0062a7326cc'
+const REGISTRAR_ADDRESS = '0xfC0d338Ff0f0e4F545AE0Abba0d19aa467483FA7'
 
 const registryAbi = [{
   "inputs": [
@@ -33,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     // Send registration transaction
     const hash = await client.writeContract({
-      address: REGISTRY_ADDRESS,
+      address: REGISTRAR_ADDRESS,
       abi: registryAbi,
       functionName: 'register',
       args: [name, address]

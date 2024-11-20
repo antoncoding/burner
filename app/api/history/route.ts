@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const INCH_API_KEY = '0rSrfQPlKkOGeEmJ1dVENdgnJhkDjSWt'
+const INCH_API_KEY = process.env.ONEINCHE_KEY;
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams

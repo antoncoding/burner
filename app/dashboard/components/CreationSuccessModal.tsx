@@ -73,12 +73,12 @@ export function CreationSuccessModal({ isOpen, onClose, address, label }: Props)
       const stored = JSON.parse(localStorage.getItem('storedWallets') || '[]')
       const updated = stored.map((w: any) => 
         w.address === address 
-          ? { ...w, ens: `${ensName}.emodev.eth` }
+          ? { ...w, ens: `${ensName}.burnerstation.eth` }
           : w
       )
       localStorage.setItem('storedWallets', JSON.stringify(updated))
 
-      setRegisteredENS(`${ensName}.emodev.eth`)
+      setRegisteredENS(`${ensName}.burnerstation.eth`)
       setRegistrationSuccess(true)
       toast.success('✨ ENS name registered successfully!')
     } catch (error) {
@@ -157,7 +157,7 @@ export function CreationSuccessModal({ isOpen, onClose, address, label }: Props)
                       placeholder="vitalik"
                       disabled={isRegistering || registrationSuccess}
                     />
-                    <span className="pr-3 text-gray-500 whitespace-nowrap">.emodev.eth</span>
+                    <span className="pr-3 text-gray-500 whitespace-nowrap">.burnerstation.eth</span>
                   </div>
                   <motion.button
                     onClick={handleRegisterENS}

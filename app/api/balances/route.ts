@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const INCH_API_KEY = '0rSrfQPlKkOGeEmJ1dVENdgnJhkDjSWt'
+const INCH_API_KEY = process.env.ONEINCHE_KEY;
+
+console.log('INCH_API_KEY', INCH_API_KEY)
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams
@@ -25,6 +27,7 @@ export async function GET(req: NextRequest) {
     )
     
     if (!response.ok) {
+      console.log('error', response)
       throw new Error(`HTTP error! status: ${response.status}`)
     }
     

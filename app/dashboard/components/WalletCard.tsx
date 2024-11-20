@@ -16,7 +16,6 @@ import { useTokenHistory } from '../hooks/useTokenHistory';
 import { formatDistanceToNow } from 'date-fns';
 import { formatUnits } from 'viem';
 import { SUPPORTED_STABLES } from '../config/tokens';
-import { useNotifications } from '../../hooks/useNotifications';
 import { toast } from 'react-hot-toast';
 import { RiFireLine } from 'react-icons/ri';
 
@@ -45,7 +44,7 @@ export function WalletCard({
     refetch: refetchHistory,
   } = useTokenHistory(wallet.address);
   const [isExpanded, setIsExpanded] = useState(false);
-  const { requestNotificationPermission } = useNotifications(wallet.address);
+  // const { requestNotificationPermission } = useNotifications(wallet.address);
 
   const refetchRef = useRef(refetchBalances);
   useEffect(() => {

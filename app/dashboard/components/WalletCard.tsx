@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { Address, Chain } from 'viem';
+import { Address } from 'viem';
 import { Avatar } from './Avatar';
 import { Wallet } from '../types/wallet';
 import { PencilIcon } from '@heroicons/react/24/outline';
 import { IoCopyOutline } from 'react-icons/io5';
-import { FiCheck, FiExternalLink, FiTrash2, FiChevronDown } from 'react-icons/fi';
+import { FiCheck, FiExternalLink, FiChevronDown } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TbFingerprint, TbKey } from 'react-icons/tb';
 import { useTokenBalances } from '../hooks/useTokenBalances';

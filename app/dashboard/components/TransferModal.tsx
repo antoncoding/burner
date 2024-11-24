@@ -7,8 +7,9 @@ import { TokenBalance, Wallet } from '../types/wallet';
 import { ImSpinner8 } from 'react-icons/im';
 import { base, optimism, arbitrum } from 'viem/chains';
 import { SUPPORTED_STABLES } from '../config/tokens';
-import { Select, SelectItem } from '@nextui-org/select';
+import { Select, SelectItem, Input } from '@nextui-org/react';
 import Image from 'next/image';
+import { NETWORK_CONFIG } from '../config/networks';
 
 type Props = {
   isOpen: boolean;
@@ -116,70 +117,93 @@ export default function TransferModal({ isOpen, onClose, wallet, balances }: Pro
             {currentStep === 'input' ? (
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
-                  <label className="mb-2 block">To Address</label>
-                  <input
-                    type="text"
-                    className="w-full rounded-lg border border-gray-600 bg-transparent p-2"
+                  <Input
+                    label="To Address"
                     value={toAddress}
                     onChange={(e) => setToAddress(e.target.value)}
                     required
+                    classNames={{
+                      input: "bg-transparent",
+                      inputWrapper: "bg-transparent border-gray-600 hover:border-primary group-data-[focused=true]:border-primary",
+                    }}
+                    endContent={
+                      <div className="flex items-center gap-2">
+                        <Image 
+                          src={NETWORK_CONFIG[sourceChain.id].icon} 
+                          alt={sourceChain.name} 
+                          width={16} 
+                          height={16} 
+                        />
+                        <span className="rounded bg-default-100 px-2 py-0.5 text-xs text-default-600">
+                          {sourceChain.name}
+                        </span>
+                      </div>
+                    }
                   />
                 </div>
 
                 <div className="mb-4">
-                  <label className="mb-2 block">Amount</label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      className="w-full rounded-lg border border-gray-600 bg-transparent p-2 pr-32"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder="0.00"
-                      max={sourceChainBalance}
-                      step="0.01"
-                      required
-                    />
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                      <Select
-                        defaultSelectedKeys={[SUPPORTED_STABLES[0].symbol]}
-                        selectedKeys={[selectedToken.symbol]}
-                        classNames={{
-                          trigger: "min-h-0 h-8 bg-transparent border-0 min-w-[120px]",
-                          value: "text-default-600",
-                          popover: "min-w-[200px]"
-                        }}
-                        onChange={(e) => {
-                          const token = SUPPORTED_STABLES.find((t) => t.symbol === e.target.value);
-                          if (token) setSelectedToken(token);
-                        }}
-                        renderValue={(items) => {
-                          const token = SUPPORTED_STABLES.find(t => t.symbol === items[0]?.key);
-                          return token ? (
-                            <div className="flex items-center gap-2">
-                              <Image src={token.icon} alt={token.symbol} width={16} height={16} />
-                              <span>{token.symbol}</span>
-                            </div>
-                          ) : null;
-                        }}
-                      >
-                        {SUPPORTED_STABLES.map((token) => (
-                          <SelectItem 
-                            key={token.symbol} 
-                            value={token.symbol}
-                            className="data-[selected=true]:bg-default-100"
-                          >
-                            <div className="flex items-center gap-2">
-                              <Image src={token.icon} alt={token.symbol} width={16} height={16} />
-                              <span>{token.symbol}</span>
-                              <span className="ml-auto rounded bg-default-100 px-1.5 py-0.5 text-xs">
-                                {sourceChain.name}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </Select>
-                    </div>
-                  </div>
+                  <Input
+                    type="number"
+                    label="Amount"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0.00"
+                    required
+                    classNames={{
+                      input: "bg-transparent",
+                      inputWrapper: "bg-transparent border-gray-600 hover:border-primary group-data-[focused=true]:border-primary",
+                    }}
+                    endContent={
+                      <div className="flex items-center">
+                        <Select
+                          defaultSelectedKeys={[SUPPORTED_STABLES[0].symbol]}
+                          selectedKeys={[selectedToken.symbol]}
+                          classNames={{
+                            trigger: "min-h-0 h-8 bg-transparent border-0 min-w-[120px]",
+                            value: "text-default-600",
+                          }}
+                          onChange={(e) => {
+                            const token = SUPPORTED_STABLES.find((t) => t.symbol === e.target.value);
+                            if (token) setSelectedToken(token);
+                          }}
+                          renderValue={(items) => {
+                            const token = SUPPORTED_STABLES.find(t => t.symbol === items[0]?.key);
+                            return token ? (
+                              <div className="flex items-center gap-2">
+                                <Image src={token.icon} alt={token.symbol} width={16} height={16} />
+                                <span>{token.symbol}</span>
+                              </div>
+                            ) : null;
+                          }}
+                        >
+                          {SUPPORTED_STABLES.map((token) => (
+                            <SelectItem 
+                              key={token.symbol} 
+                              value={token.symbol}
+                              className="data-[selected=true]:bg-default-100"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Image src={token.icon} alt={token.symbol} width={16} height={16} />
+                                <span>{token.symbol}</span>
+                                <span className="ml-auto rounded bg-default-100 px-1.5 py-0.5 text-xs">
+                                  <div className="flex items-center gap-1">
+                                    <Image 
+                                      src={NETWORK_CONFIG[sourceChain.id].icon} 
+                                      alt={sourceChain.name} 
+                                      width={12} 
+                                      height={12} 
+                                    />
+                                    {sourceChain.name}
+                                  </div>
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </Select>
+                      </div>
+                    }
+                  />
                   <div className="mt-1 text-sm text-gray-400">
                     Balance: {sourceChainBalance} {selectedToken.symbol}
                   </div>
@@ -203,86 +227,34 @@ export default function TransferModal({ isOpen, onClose, wallet, balances }: Pro
                       exit={{ opacity: 0, height: 0 }}
                       className="mt-4"
                     >
-                      <div className="flex gap-4">
-                        <div className="flex-1">
-                          <Select
-                            label="From Chain"
-                            selectedKeys={[sourceChain.id.toString()]}
-                            onChange={(e) => {
-                              const chain = SUPPORTED_CHAINS.find(
-                                (c) => c.id.toString() === e.target.value,
-                              );
-                              if (chain) setSourceChain(chain);
-                            }}
-                          >
-                            {SUPPORTED_CHAINS.map((chain) => (
-                              <SelectItem key={chain.id} value={chain.id}>
-                                <div className="flex items-center gap-2">
-                                  <Image
-                                    src={`/chains/${chain.id}.png`}
-                                    alt={chain.name}
-                                    width={20}
-                                    height={20}
-                                  />
-                                  {chain.name}
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </Select>
-                        </div>
-
-                        <div className="flex-1">
-                          <Select
-                            label="To Chain"
-                            selectedKeys={[destinationChain.id.toString()]}
-                            onChange={(e) => {
-                              const chain = SUPPORTED_CHAINS.find(
-                                (c) => c.id.toString() === e.target.value,
-                              );
-                              if (chain) setDestinationChain(chain);
-                            }}
-                          >
-                            {SUPPORTED_CHAINS.map((chain) => (
-                              <SelectItem key={chain.id} value={chain.id}>
-                                <div className="flex items-center gap-2">
-                                  <Image
-                                    src={`/chains/${chain.id}.png`}
-                                    alt={chain.name}
-                                    width={20}
-                                    height={20}
-                                  />
-                                  {chain.name}
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </Select>
-                        </div>
-                      </div>
-
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: 0.2 }}
-                        className="mt-4"
+                      <Select
+                        label="Destination Chain"
+                        selectedKeys={[destinationChain.id.toString()]}
+                        classNames={{
+                          trigger: "bg-transparent border-gray-600 hover:border-primary data-[open=true]:border-primary",
+                          value: "text-default-600",
+                        }}
+                        onChange={(e) => {
+                          const chain = SUPPORTED_CHAINS.find(
+                            (c) => c.id.toString() === e.target.value,
+                          );
+                          if (chain) setDestinationChain(chain);
+                        }}
                       >
-                        <Select
-                          label="Token"
-                          selectedKeys={[selectedToken.symbol]}
-                          onChange={(e) => {
-                            const token = SUPPORTED_STABLES.find((t) => t.symbol === e.target.value);
-                            if (token) setSelectedToken(token);
-                          }}
-                        >
-                          {SUPPORTED_STABLES.map((token) => (
-                            <SelectItem key={token.symbol} value={token.symbol}>
-                              <div className="flex items-center gap-2">
-                                <Image src={token.icon} alt={token.symbol} width={20} height={20} />
-                                {token.symbol}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </Select>
-                      </motion.div>
+                        {SUPPORTED_CHAINS.filter(chain => chain.id !== sourceChain.id).map((chain) => (
+                          <SelectItem key={chain.id} value={chain.id}>
+                            <div className="flex items-center gap-2">
+                              <Image
+                                src={NETWORK_CONFIG[chain.id].icon}
+                                alt={chain.name}
+                                width={20}
+                                height={20}
+                              />
+                              {chain.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </Select>
 
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}

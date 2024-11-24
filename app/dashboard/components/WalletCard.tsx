@@ -94,13 +94,11 @@ export function WalletCard({
 
   const canBurnWallet = !isLoading && balances.every((b) => parseFloat(b.balance) === 0);
 
+  console.log('balances', balances);
+
   const totalBalance = balances
     .reduce((sum, balance) => sum + parseFloat(balance.balance), 0)
     .toFixed(2);
-
-  // Get USDC balance
-  const usdcBalance =
-    balances.find((b) => b.token.symbol === 'USDC' && b.chain.id === base.id)?.balance || '0';
 
   const storedWallet = JSON.parse(localStorage.getItem('storedWallets') || '[]').find(
     (w: any) => w.address === wallet.address,
@@ -256,7 +254,7 @@ export function WalletCard({
             <div className="flex gap-2">
               {balances.map((balance) => (
                 <motion.div
-                  key={`${balance.token.symbol}-${balance.chain.id}`}
+                  key={`${balance.token.symbol}-${balance.chain}`}
                   className="group relative h-6 w-6"
                   whileHover={{ scale: 1.1 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 10 }}

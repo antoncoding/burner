@@ -28,25 +28,34 @@ export type HistoryItem = {
   };
 };
 
+// Helper function to add delay
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 // Global fetch function for multiple addresses
 export async function fetchAllHistory(addresses: Address[]) {
-  const allHistory = await Promise.all(
-    addresses.map(async (address) => {
-      try {
-        const response = await fetch(`/api/history?address=${address}`);
+  const allHistory = [];
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+  // Sequential fetching with delay
+  for (const address of addresses) {
+    try {
+      const response = await fetch(`/api/history?address=${address}`);
 
-        const data = await response.json();
-        return { address, data };
-      } catch (error) {
-        console.error(`Failed to fetch history for ${address}:`, error);
-        return { address, data: null };
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    }),
-  );
+
+      const data = await response.json();
+      allHistory.push({ address, data });
+
+      // Add 1.2 second delay between requests
+      if (addresses.indexOf(address) < addresses.length - 1) {
+        await delay(1200);
+      }
+    } catch (error) {
+      console.error(`Failed to fetch history for ${address}:`, error);
+      allHistory.push({ address, data: null });
+    }
+  }
 
   // Emit event with results
   window.dispatchEvent(

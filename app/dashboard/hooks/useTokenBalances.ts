@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Address, formatUnits } from 'viem';
 import { base, mainnet, optimism, arbitrum } from 'viem/chains';
 import { SUPPORTED_STABLES } from '../config/tokens';
-import { TokenBalance, TokenMetadata } from '../types/wallet';
+import { TokenBalance, TokenBalanceRaw } from '../types/wallet';
 import toast from 'react-hot-toast';
 
 // Global loading state
@@ -16,7 +16,7 @@ const CHAIN_IDS = {
 };
 
 // Helper function to add delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function fetchAllBalances(addresses: Address[]) {
   if (isGlobalFetching) return;
@@ -54,17 +54,19 @@ export async function fetchAllBalances(addresses: Address[]) {
               console.error(`Failed to fetch balances for chain ${chainId}:`, error);
               return { chainId, data: null };
             }
-          })
+          }),
         );
 
         return { address, balances: chainBalances };
-      })
+      }),
     );
 
     toast.success(`✨ Updated ${addresses.length} wallets`, { id: toastId });
-    window.dispatchEvent(new CustomEvent('balancesUpdated', {
-      detail: { results: allBalances }
-    }));
+    window.dispatchEvent(
+      new CustomEvent('balancesUpdated', {
+        detail: { results: allBalances },
+      }),
+    );
 
     return allBalances;
   } catch (error) {
@@ -79,25 +81,24 @@ export function useTokenBalances(address: Address) {
   const [balances, setBalances] = useState<TokenBalance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const processTokenData = (tokens: TokenMetadata[], chainId: number) => {
-    return SUPPORTED_STABLES.flatMap(supportedToken => {
-      const networkConfig = supportedToken.networks.find(n => n.chain.id === chainId);
-      if (!networkConfig) return [];
-
-      const token = tokens.find(t => 
-        t.address.toLowerCase() === networkConfig.address.toLowerCase()
+  const processTokenData = (tokens: TokenBalanceRaw[], chainId: number) => {
+    const newBalances: TokenBalance[] = [];
+    for (const token of tokens) {
+      const networkToken = SUPPORTED_STABLES.find((stable) =>
+        stable.networks.find((n) => n.address.toLowerCase() === token.address.toLowerCase()),
       );
-      
-      if (!token) return [];
 
-      return [{
-        token: supportedToken,
-        balance: formatUnits(BigInt(token.balance), token.decimals),
-        chain: networkConfig.chain,
-        metadata: token
-      }];
-    });
-  }
+      if (networkToken) {
+        newBalances.push({
+          token: networkToken,
+          balance: formatUnits(BigInt(token.balance), networkToken.decimals),
+          chain: chainId,
+        });
+      }
+    }
+
+    return newBalances;
+  };
 
   const fetchBalances = useCallback(async () => {
     setIsLoading(true);
@@ -111,14 +112,14 @@ export function useTokenBalances(address: Address) {
 
           const response = await fetch(`/api/balances?address=${address}&chainId=${chainId}`);
           if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-          
+
           const data = await response.json();
           return { chainId: Number(chainId), tokens: data.tokens || [] };
-        })
+        }),
       );
 
-      const processedBalances = chainBalances.flatMap(({ chainId, tokens }) => 
-        processTokenData(tokens, chainId)
+      const processedBalances = chainBalances.flatMap(({ chainId, tokens }) =>
+        processTokenData(tokens, chainId),
       );
 
       setBalances(processedBalances);
@@ -136,18 +137,21 @@ export function useTokenBalances(address: Address) {
 
   // Listen for global balance updates
   useEffect(() => {
-    const handleBalancesUpdated = (event: CustomEvent<{ results: { address: Address, balances: any[] }[] }>) => {
-      const result = event.detail.results.find(r => r.address === address);
+    const handleBalancesUpdated = (
+      event: CustomEvent<{ results: { address: Address; balances: any[] }[] }>,
+    ) => {
+      const result = event.detail.results.find((r) => r.address === address);
       if (result?.balances) {
-        const processedBalances = result.balances.flatMap(({ chainId, data }) => 
-          data?.tokens ? processTokenData(data.tokens, Number(chainId)) : []
+        const processedBalances = result.balances.flatMap(({ chainId, data }) =>
+          data?.tokens ? processTokenData(data.tokens, Number(chainId)) : [],
         );
         setBalances(processedBalances);
       }
-    }
+    };
 
     window.addEventListener('balancesUpdated', handleBalancesUpdated as EventListener);
-    return () => window.removeEventListener('balancesUpdated', handleBalancesUpdated as EventListener);
+    return () =>
+      window.removeEventListener('balancesUpdated', handleBalancesUpdated as EventListener);
   }, [address]);
 
   return { balances, isLoading, refetch: fetchBalances };

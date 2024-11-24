@@ -31,16 +31,16 @@ export async function GET(req: NextRequest) {
     // Get token balances
     const balancesResponse = await fetch(alchemyUrl, {
       method: 'POST',
-      headers: { 
-        'accept': 'application/json', 
-        'content-type': 'application/json' 
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
       },
       body: JSON.stringify({
         id: 1,
         jsonrpc: '2.0',
         method: 'alchemy_getTokenBalances',
-        params: [address]
-      })
+        params: [address],
+      }),
     });
 
     if (!balancesResponse.ok) {
@@ -49,19 +49,23 @@ export async function GET(req: NextRequest) {
 
     const balancesData = await balancesResponse.json();
     const nonZeroBalances: TokenBalance[] = balancesData.result.tokenBalances.filter(
-      (token: TokenBalance) => token.tokenBalance !== '0x0000000000000000000000000000000000000000000000000000000000000000'
+      (token: TokenBalance) =>
+        token.tokenBalance !== '0x0000000000000000000000000000000000000000000000000000000000000000',
     );
 
     // Filter out failed metadata requests
-    const validTokens = nonZeroBalances.filter(token => token !== null).map(token => ({
-      address: token.contractAddress,
-      balance: BigInt(token.tokenBalance).toString(10)
-    }));
+    const validTokens = nonZeroBalances
+      .filter((token) => token !== null)
+      .map((token) => ({
+        address: token.contractAddress,
+        balance: BigInt(token.tokenBalance).toString(10),
+      }));
+
+    console.log('token for address', address, validTokens);
 
     return NextResponse.json({
-      tokens: validTokens
+      tokens: validTokens,
     });
-
   } catch (error) {
     console.error('Failed to fetch balances:', error);
     return NextResponse.json({ error: 'Failed to fetch balances' }, { status: 500 });

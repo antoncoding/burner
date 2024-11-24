@@ -11,24 +11,19 @@ export type TokenInfo = {
   }[];
 };
 
-export type TokenMetadata = {
+export type TokenBalanceRaw = {
   address: string;
   balance: string;
-  name: string;
-  symbol: string;
-  decimals: number;
-  logo?: string | null;
 };
 
 export type TokenBalanceResponse = {
-  tokens: TokenMetadata[];
+  tokens: TokenBalanceRaw[];
 };
 
 export type TokenBalance = {
   token: TokenInfo;
   balance: string;
-  chain: Chain;
-  metadata?: TokenMetadata;
+  chain: number;
 };
 
 export type SignerType = 'passkey' | 'localEOA' | 'biconomyEOA';

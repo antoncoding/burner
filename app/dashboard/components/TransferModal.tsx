@@ -32,7 +32,7 @@ export function TransferModal({ isOpen, onClose, wallet, balances }: Props) {
 
     const chainBalances = balances.reduce(
       (acc, balance) => {
-        const chainId = balance.chain.id;
+        const chainId = balance.chain;
         acc[chainId] = (acc[chainId] || 0) + parseFloat(balance.balance);
         return acc;
       },
@@ -49,8 +49,7 @@ export function TransferModal({ isOpen, onClose, wallet, balances }: Props) {
 
   const sourceChainBalance = useMemo(() => {
     return (
-      balances.find((b) => b.token.symbol === 'USDC' && b.chain.id === sourceChain.id)?.balance ||
-      '0'
+      balances.find((b) => b.token.symbol === 'USDC' && b.chain === sourceChain.id)?.balance || '0'
     );
   }, [balances, sourceChain.id]);
 

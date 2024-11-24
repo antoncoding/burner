@@ -13,26 +13,26 @@ type NetworkConfig = {
 
 export const NETWORK_CONFIG: NetworkConfig = {
   [mainnet.id]: {
-    bundlerUrl: 'https://rpc.zerodev.app/api/v2/bundler/e7354385-1f40-4b2f-8939-fb30b2986090',
-    paymasterUrl: 'https://rpc.zerodev.app/api/v2/paymaster/e7354385-1f40-4b2f-8939-fb30b2986090',
+    bundlerUrl: process.env.NEXT_PUBLIC_MAINNET_BUNDLER_URL || '',
+    paymasterUrl: process.env.NEXT_PUBLIC_MAINNET_PAYMASTER_URL || '',
     entryPoint: ENTRYPOINT_ADDRESS_V07,
     chain: mainnet,
   },
   [base.id]: {
-    bundlerUrl: 'https://rpc.zerodev.app/api/v2/bundler/9df19371-f92e-4115-b36c-1be5ef1db6c0',
-    paymasterUrl: 'https://rpc.zerodev.app/api/v2/paymaster/9df19371-f92e-4115-b36c-1be5ef1db6c0',
+    bundlerUrl: process.env.NEXT_PUBLIC_BASE_BUNDLER_URL || '',
+    paymasterUrl: process.env.NEXT_PUBLIC_BASE_PAYMASTER_URL || '',
     entryPoint: ENTRYPOINT_ADDRESS_V07,
     chain: base,
   },
   [optimism.id]: {
-    bundlerUrl: 'https://rpc.zerodev.app/api/v2/bundler/56a20d60-be0e-4c29-9c09-5bbe55fb0565',
-    paymasterUrl: 'https://rpc.zerodev.app/api/v2/paymaster/56a20d60-be0e-4c29-9c09-5bbe55fb0565',
+    bundlerUrl: process.env.NEXT_PUBLIC_OPTIMISM_BUNDLER_URL || '',
+    paymasterUrl: process.env.NEXT_PUBLIC_OPTIMISM_PAYMASTER_URL || '',
     entryPoint: ENTRYPOINT_ADDRESS_V07,
     chain: optimism,
   },
   [arbitrum.id]: {
-    bundlerUrl: 'https://rpc.zerodev.app/api/v2/bundler/f8b81555-26bd-4b32-b129-db97775f0085',
-    paymasterUrl: 'https://rpc.zerodev.app/api/v2/paymaster/f8b81555-26bd-4b32-b129-db97775f0085',
+    bundlerUrl: process.env.NEXT_PUBLIC_ARBITRUM_BUNDLER_URL || '',
+    paymasterUrl: process.env.NEXT_PUBLIC_ARBITRUM_PAYMASTER_URL || '',
     entryPoint: ENTRYPOINT_ADDRESS_V07,
     chain: arbitrum,
   },

@@ -10,7 +10,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TbFingerprint, TbKey } from 'react-icons/tb';
 import { useTokenBalances } from '../hooks/useTokenBalances';
 import { base } from 'viem/chains';
-import { TransferModal } from './TransferModal';
 import { BurnWalletModal } from './BurnWalletModal';
 import { useTokenHistory } from '../hooks/useTokenHistory';
 import { formatDistanceToNow } from 'date-fns';
@@ -18,6 +17,7 @@ import { formatUnits } from 'viem';
 import { SUPPORTED_STABLES } from '../config/tokens';
 import { toast } from 'react-hot-toast';
 import { RiFireLine } from 'react-icons/ri';
+import TransferModal from './TransferModal';
 
 type Props = {
   wallet: Wallet;
@@ -93,8 +93,6 @@ export function WalletCard({
   };
 
   const canBurnWallet = !isLoading && balances.every((b) => parseFloat(b.balance) === 0);
-
-  console.log('balances', balances);
 
   const totalBalance = balances
     .reduce((sum, balance) => sum + parseFloat(balance.balance), 0)

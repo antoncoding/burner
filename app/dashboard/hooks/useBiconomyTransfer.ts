@@ -84,7 +84,6 @@ export async function transferUSDCWithBiconomy({
     toast.loading('⏳ Waiting for confirmation...', { id: toastId });
 
     const { transactionHash } = await userOpResponse.waitForTxHash();
-    console.log('Transaction Hash', transactionHash);
 
     const userOpReceipt = await userOpResponse.wait();
     if (userOpReceipt.success === 'true') {

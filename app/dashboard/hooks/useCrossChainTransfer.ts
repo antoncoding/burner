@@ -1,4 +1,6 @@
-import { Address, parseUnits, http, encodeFunctionData, zeroAddress } from 'viem';
+import { useState } from 'react';
+import { parseUnits } from 'viem';
+import { Address, http, encodeFunctionData, zeroAddress } from 'viem';
 import { base, optimism, arbitrum } from 'viem/chains';
 import {
   createKernelAccount,
@@ -10,7 +12,7 @@ import { getRpcProviderForChain } from '@/utils/provider';
 import { erc20Abi } from 'viem';
 import toast from 'react-hot-toast';
 import { getNetworkConfig } from '../config/networks';
-import { Wallet } from '../types/wallet';
+import { TokenInfo, Wallet } from '../types/wallet';
 import { getValidator } from './useTransferToken';
 import { fetchAllBalances } from './useTokenBalances';
 import { KERNEL_V3_1 } from '@zerodev/sdk/constants';
@@ -46,142 +48,133 @@ const acrossAbi = [
 
 type TransferStep = 'input' | 'preparing' | 'confirming';
 
-export async function transferCrossChain({
-  from,
-  to,
-  amount,
-  wallet,
-  sourceChainId,
-  destinationChainId,
-  onStep,
-}: {
-  from: Address;
-  to: Address;
-  amount: string;
-  wallet: Wallet;
-  sourceChainId: number;
-  destinationChainId: number;
-  onStep?: (step: TransferStep) => void;
-}) {
-  const toastId = toast.loading('🔄 Preparing cross-chain transfer...', {
-    style: {
-      background: 'var(--color-background-secondary)',
-      color: 'var(--color-text)',
-      border: '1px solid var(--color-background-hovered)',
-      padding: '16px',
-      borderRadius: '12px',
-    },
-  });
+export function useCrossChainTransfer(address: string) {
+  const [isLoading, setIsLoading] = useState(false);
 
-  try {
-    onStep?.('preparing');
-    const networkConfig = getNetworkConfig(sourceChainId);
-    const publicClient = getRpcProviderForChain(networkConfig.chain);
+  const transfer = async (
+    sourceChainId: number,
+    destChainId: number,
+    amount: string,
+    selectedToken: TokenInfo,
+    from: Address,
+    to: Address,
+    onStep?: (step: TransferStep) => void,
+  ) => {
+    if (isLoading) throw new Error('Already transferring');
+    setIsLoading(true);
+    const toastId = toast.loading('⏳ Preparing transaction...');
 
-    // Get USDC token config
-    const usdcToken = SUPPORTED_STABLES.find((t) => t.symbol === 'USDC');
-    if (!usdcToken) throw new Error('USDC token config not found');
+    try {
+      // Get token configs for source and destination chains
+      const sourceTokenConfig = selectedToken.networks.find((n) => n.chain.id === sourceChainId);
+      const destTokenConfig = selectedToken.networks.find((n) => n.chain.id === destChainId);
 
-    // Get network specific USDC addresses
-    const sourceTokenConfig = usdcToken.networks.find((n) => n.chain.id === sourceChainId);
-    const destTokenConfig = usdcToken.networks.find((n) => n.chain.id === destinationChainId);
-    if (!sourceTokenConfig || !destTokenConfig)
-      throw new Error('USDC not supported on this network pair');
+      if (!sourceTokenConfig || !destTokenConfig)
+        throw new Error(`${selectedToken.symbol} not supported on this network pair`);
 
-    // Get spoke pool address
-    const spokePool = SPOKE_POOLS[sourceChainId];
-    console.log('spokePool', spokePool);
-    if (!spokePool) throw new Error('Source chain not supported');
+      // Get spoke pool address
+      const spokePool = SPOKE_POOLS[sourceChainId];
+      if (!spokePool) throw new Error('Source chain not supported');
 
-    // Calculate output amount (input - fee)
-    const inputAmount = parseUnits(amount, usdcToken.decimals);
-    const fee = parseUnits('0.1', usdcToken.decimals); // 0.1 USDC fee
-    const outputAmount = inputAmount - fee;
+      // Calculate output amount (input - fee)
+      const inputAmount = parseUnits(amount, selectedToken.decimals);
+      const fee = parseUnits('0.1', selectedToken.decimals); // 0.1 token fee
+      const outputAmount = inputAmount - fee;
 
-    if (outputAmount <= 0n) {
-      throw new Error('Amount too small for cross-chain transfer');
+      if (outputAmount <= 0n) {
+        throw new Error('Amount too small for cross-chain transfer');
+      }
+
+      // Setup validator and account
+      const networkConfig = getNetworkConfig(sourceChainId);
+      const publicClient = getRpcProviderForChain(networkConfig.chain);
+      const validator = await getValidator({ address } as Wallet, publicClient, networkConfig.entryPoint);
+      const account = await createKernelAccount(publicClient, {
+        plugins: { sudo: validator },
+        entryPoint: networkConfig.entryPoint,
+        kernelVersion: KERNEL_V3_1,
+      });
+
+      const kernelClient = createKernelAccountClient({
+        account,
+        entryPoint: networkConfig.entryPoint,
+        chain: networkConfig.chain,
+        bundlerTransport: http(networkConfig.bundlerUrl),
+        middleware: {
+          sponsorUserOperation: async ({ userOperation }) => {
+            const zerodevPaymaster = createZeroDevPaymasterClient({
+              chain: networkConfig.chain,
+              entryPoint: networkConfig.entryPoint,
+              transport: http(networkConfig.paymasterUrl),
+            });
+            return zerodevPaymaster.sponsorUserOperation({
+              userOperation,
+              entryPoint: networkConfig.entryPoint,
+            });
+          },
+        },
+      });
+
+      onStep?.('preparing');
+
+      // Encode approve and deposit data
+      const approveData = encodeFunctionData({
+        abi: erc20Abi,
+        functionName: 'approve',
+        args: [spokePool, inputAmount],
+      });
+
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      const depositData = encodeFunctionData({
+        abi: acrossAbi,
+        functionName: 'depositV3',
+        args: [
+          from, // depositor
+          to, // recipient
+          sourceTokenConfig.address as Address, // inputToken
+          zeroAddress, // outputToken, address(0) if auto resolve
+          inputAmount, // inputAmount
+          outputAmount, // outputAmount (input - fee)
+          BigInt(destChainId), // destinationChainId
+          zeroAddress, // exclusiveRelayer
+          currentTimestamp, // quoteTimestamp
+          currentTimestamp + 120, // fillDeadline (2 minutes)
+          0, // exclusivityDeadline
+          '0x', // message
+        ],
+      });
+
+      onStep?.('confirming');
+
+      // Send batch transaction with proper sponsorship
+      const hash = await kernelClient.sendTransactions({
+        account, // Make sure account is passed
+        transactions: [
+          {
+            to: sourceTokenConfig.address as Address,
+            value: BigInt(0),
+            data: approveData,
+          },
+          {
+            to: spokePool,
+            value: BigInt(0),
+            data: depositData,
+          },
+        ],
+      });
+
+      toast.success('✨ Cross-chain transfer initiated!', { id: toastId });
+      await fetchAllBalances([from]);
+
+      return hash;
+    } catch (error: any) {
+      console.error('Transfer failed:', error);
+      toast.error(`😅 Transfer failed: ${error.message}`, { id: toastId });
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    // Setup validator and account
-    const validator = await getValidator(wallet, publicClient, networkConfig.entryPoint);
-    const account = await createKernelAccount(publicClient, {
-      plugins: { sudo: validator },
-      entryPoint: networkConfig.entryPoint,
-      kernelVersion: KERNEL_V3_1,
-    });
-
-    const kernelClient = createKernelAccountClient({
-      account,
-      entryPoint: networkConfig.entryPoint,
-      chain: networkConfig.chain,
-      bundlerTransport: http(networkConfig.bundlerUrl),
-      middleware: {
-        sponsorUserOperation: async ({ userOperation }) => {
-          const zerodevPaymaster = createZeroDevPaymasterClient({
-            chain: networkConfig.chain,
-            entryPoint: networkConfig.entryPoint,
-            transport: http(networkConfig.paymasterUrl),
-          });
-          return zerodevPaymaster.sponsorUserOperation({
-            userOperation,
-            entryPoint: networkConfig.entryPoint,
-          });
-        },
-      },
-    });
-
-    // Encode approve and deposit data
-    const approveData = encodeFunctionData({
-      abi: erc20Abi,
-      functionName: 'approve',
-      args: [spokePool, inputAmount],
-    });
-
-    const currentTimestamp = Math.floor(Date.now() / 1000);
-    const depositData = encodeFunctionData({
-      abi: acrossAbi,
-      functionName: 'depositV3',
-      args: [
-        from, // depositor
-        to, // recipient
-        sourceTokenConfig.address as Address, // inputToken
-        zeroAddress, // outputToken, address(0) if auto resolve
-        inputAmount, // inputAmount
-        outputAmount, // outputAmount (input - fee)
-        BigInt(destinationChainId), // destinationChainId
-        zeroAddress, // exclusiveRelayer
-        currentTimestamp, // quoteTimestamp
-        currentTimestamp + 120, // fillDeadline (2 minutes)
-        0, // exclusivityDeadline
-        '0x', // message
-      ],
-    });
-
-    onStep?.('confirming');
-    // Send batch transaction with proper sponsorship
-    const hash = await kernelClient.sendTransactions({
-      account, // Make sure account is passed
-      transactions: [
-        {
-          to: sourceTokenConfig.address as Address,
-          value: BigInt(0),
-          data: approveData,
-        },
-        {
-          to: spokePool,
-          value: BigInt(0),
-          data: depositData,
-        },
-      ],
-    });
-
-    toast.success('✨ Cross-chain transfer initiated!', { id: toastId });
-    await fetchAllBalances([from]);
-
-    return hash;
-  } catch (error) {
-    console.error('Cross-chain transfer failed:', error);
-    toast.error('😅 Transfer failed', { id: toastId });
-    throw error;
-  }
+  return { transfer, isLoading };
 }

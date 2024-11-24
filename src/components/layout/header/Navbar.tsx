@@ -77,7 +77,6 @@ function Navbar() {
           ) : (
             <FaRegMoon
               onClick={() => {
-                console.log('setTheme', setTheme);
                 setTheme('dark');
               }}
               className="h-4 w-4 transition duration-300 ease-in-out hover:scale-110"

@@ -78,10 +78,6 @@ export async function transferUSDC({
     let userOpHash: string;
     let receipt: any;
 
-    const storedWallet = JSON.parse(localStorage.getItem('storedWallets') || '[]').find(
-      (w: any) => w.address === wallet.address,
-    );
-
     // ZeroDev flow - handle both passkey and local key
     const validator = await getValidator(wallet, publicClient, networkConfig.entryPoint);
 

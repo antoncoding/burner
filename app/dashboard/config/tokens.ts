@@ -61,6 +61,11 @@ export const SUPPORTED_STABLES: TokenConfig[] = [
         address: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
         fee: 70000000000000000n, // 0.07 DAI
       },
+      {
+        chain: base,
+        address: '0x50c5725949a6f0c72e6c4a641f24049a917db0cb',
+        fee: 70000000000000000n, // 0.07 DAI
+      }
     ],
   },
   {
